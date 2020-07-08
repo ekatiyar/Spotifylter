@@ -1,34 +1,19 @@
 import os
 import spotipy
+import common
 
 # TODO: Replace this with some front-end way to authenticate on heroku
 
-scopes_list = [
-    "playlist-modify-public",
-    "playlist-modify-private",
-    "user-read-currently-playing",
-    "user-read-playback-state",
-    "user-library-read",
-    "user-read-email"
-]
-
 
 def setup() -> None:
-    scopes = " ".join(scopes_list)
     cid = input("SPOTIPY CLIENT ID: ")
     csec = input("SPOTIPY CLIENT SECRET: ")
     cuser = input("SPOTIFY USERNAME: ")
     cred = "http://localhost:8080"
 
-    auth_manager = spotipy.oauth2.SpotifyOAuth(
-        client_id=cid,
-        client_secret=csec,
-        redirect_uri= cred,
-        username = cuser, 
-        scope=scopes)
+    auth_manager = common.gen_auth_manager(cid, csec, cred, cuser, common.scopes_list)
+    auth_manager.get_auth_response()
     token = auth_manager.get_cached_token()
-    if token==None:
-        token = auth_manager.get_access_token()
 
     print("Add the following items to the heroku config vars\n")
     print("SPOTIPY_CLIENT_ID", cid)
