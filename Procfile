@@ -1,1 +1,1 @@
-worker: python EECSbot.py
+worker: python main.py
