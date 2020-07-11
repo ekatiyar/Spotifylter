@@ -15,11 +15,12 @@ def gen_auth_manager(client_id: str, client_secret: str, redirect_uri: str, user
     auth_manager = spotipy.oauth2.SpotifyOAuth(
         client_id=client_id,
         client_secret=client_secret,
-        redirect_uri= redirect_uri,
-        username = username, 
+        redirect_uri=redirect_uri,
+        username=username,
         scope=" ".join(scopes))
 
     return auth_manager
+
 
 def environ_auth_manager(scopes: list) -> spotipy.oauth2.SpotifyOAuth:
     return gen_auth_manager(
@@ -30,11 +31,29 @@ def environ_auth_manager(scopes: list) -> spotipy.oauth2.SpotifyOAuth:
         scopes
     )
 
+
 def get_token(auth_manager: spotipy.oauth2.SpotifyOAuth) -> dict:
     token = auth_manager.refresh_access_token(os.getenv("SPOTIFY_REFRESH"))
     return token
 
+
+# This function must be called after a cached version of the token exists
+def check_refresh(auth_manager: spotipy.oauth2.SpotifyOAuth) -> dict:
+    token = auth_manager.get_cached_token()
+    assert(token != None)
+    if auth_manager.is_token_expired(token):
+        return get_token(auth_manager)
+    else:
+        return token
+
+
 def get_env(key) -> str:
     val = os.getenv(key)
-    assert(val!=None)
+    assert(val != None)
     return str(val)
+
+
+def parse_uri(uri: str) -> str:
+    ind = uri.find("playlist")
+    assert(ind != -1)
+    return uri[ind:-1].split(':')[-1]
