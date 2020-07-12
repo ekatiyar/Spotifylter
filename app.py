@@ -13,12 +13,12 @@ app.config['SESSION_TYPE'] = 'filesystem'
 
 Session(app)
 
-auth_manager = common.environ_auth_manager(common.scopes_list)
-spotify = spotipy.Spotify(auth_manager=auth_manager)
-
 
 @app.route('/')
 def index():
+
+    auth_manager = common.environ_auth_manager(common.scopes_list)
+    spotify = spotipy.Spotify(auth_manager=auth_manager)
     if request.args.get("code"):
         session['token_info'] = auth_manager.get_access_token(
             request.args["code"])
@@ -41,9 +41,9 @@ def sign_out():
     return redirect('/')
 
 
-@app.route('/playlists')
-def playlists():
-    if not session.get('token_info'):
-        return redirect('/')
-    else:
-        return spotify.current_user_playlists()
+# @app.route('/playlists')
+# def playlists():
+#     if not session.get('token_info'):
+#         return redirect('/')
+#     else:
+#         return spotify.current_user_playlists()
