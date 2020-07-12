@@ -18,11 +18,11 @@ Session(app)
 def index():
 
     try:
-        print("OOJOJOJO")
-        os.remove(".cache-placeholder")
+        os.remove(".tokens")
     except:
         pass
-    auth_manager = common.environ_auth_manager(common.scopes_list)
+    auth_manager = spotipy.oauth2.SpotifyOAuth(
+        scope=" ".join(common.scopes_list), cache_path='.tokens')
     spotify = spotipy.Spotify(auth_manager=auth_manager)
     if request.args.get("code"):
         session['token_info'] = auth_manager.get_access_token(
