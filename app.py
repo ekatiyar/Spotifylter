@@ -17,6 +17,11 @@ Session(app)
 @app.route('/')
 def index():
 
+    try:
+        print("OOJOJOJO")
+        os.remove(".cache-placeholder")
+    except:
+        pass
     auth_manager = common.environ_auth_manager(common.scopes_list)
     spotify = spotipy.Spotify(auth_manager=auth_manager)
     if request.args.get("code"):
