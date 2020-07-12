@@ -1,5 +1,7 @@
 import os
 import spotipy
+from typing import List, Dict
+import models
 
 scopes_list = [
     "playlist-modify-public",
@@ -37,17 +39,15 @@ def get_token(auth_manager: spotipy.oauth2.SpotifyOAuth) -> dict:
     return token
 
 
-# This function must be called after a cached version of the token exists
-def check_refresh(auth_manager: spotipy.oauth2.SpotifyOAuth) -> dict:
-    token = auth_manager.get_cached_token()
-    assert(token != None)
+def check_refresh(auth_manager: spotipy.oauth2.SpotifyOAuth, token: dict) -> dict:
+    assert(token["access_token"])
     if auth_manager.is_token_expired(token):
         return get_token(auth_manager)
     else:
         return token
 
 
-def get_env(key) -> str:
+def get_env(key: str) -> str:
     val = os.getenv(key)
     assert(val != None)
     return str(val)
