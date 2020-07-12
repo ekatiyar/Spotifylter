@@ -28,7 +28,8 @@ def index():
         auth_url = auth_manager.get_authorize_url()
         return f'<h2><a href="{auth_url}">Sign in</a></h2>'
 
-    print(spotify.auth_manager.get_access_token())
+    print(session.get('token_info'))
+    spotify.set_auth(session.get('token_info')["access_token"])
 
     return f'<h2>Hi {spotify.me()["display_name"]}, ' \
            f'<small><a href="/sign_out">[sign out]<a/></small></h2>' \
