@@ -56,4 +56,4 @@ def get_env(key: str) -> str:
 def parse_uri(uri: str) -> str:
     ind = uri.find("playlist")
     assert(ind != -1)
-    return uri[ind:-1].split(':')[-1]
+    return uri[ind:].split(':')[-1]

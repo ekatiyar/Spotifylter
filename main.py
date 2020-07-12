@@ -42,10 +42,10 @@ def main_user_loop() -> None:
         song_id = results["item"]["id"]
 
         in_saved = sp.current_user_saved_tracks_contains([song_id])
-        in_candidate = song_id['context'] and song_id['context']['type'] == 'playlist' and common.parse_uri(
-            song_id['context']) == candidate_playlist
+        uri = common.parse_uri(results['context']["uri"])
+        in_candidate = results['context'] and results['context']['type'] == 'playlist' and uri == candidate_playlist
 
-        if in_candidate and in_saved:
+        if in_candidate and in_saved[0]:
             sp.user_playlist_remove_all_occurrences_of_tracks(
                 user["id"], candidate_playlist, [song_id])
 
