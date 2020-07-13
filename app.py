@@ -36,6 +36,8 @@ def index():
     if not session.get('token_info'):
         auth_url = auth_manager.get_authorize_url()
         return f'<h2><a href="{auth_url}">Sign in</a></h2>'
+    
+    session['token_info'] = common.check_refresh(auth_manager, session.get('token_info'))
 
     spotify.set_auth(session.get('token_info')["access_token"])
     return f'<h2>Hi {spotify.me()["display_name"]}, ' \
@@ -62,11 +64,14 @@ def playlists():
     userdata = Scoped_Session.query(
         Users).filter_by(username=user["id"]).first()
 
-    if userdata and userdata.refresh_token != refresh_token:
-        userdata.refresh_token = refresh_token
-        Scoped_Session.add(userdata)
-        Scoped_Session.commit()
-        return f'<h2>{user["display_name"]} has been updated</h2>'
+    if userdata:
+        if userdata.refresh_token != refresh_token:
+            userdata.refresh_token = refresh_token
+            Scoped_Session.add(userdata)
+            Scoped_Session.commit()
+            return f'<h2>{user["display_name"]} has been updated</h2>'
+        else:
+            return f'<h2>{user["display_name"]} has already been registered</h2>'
 
     playlist = spotify.user_playlist_create(
         username, "Spotifylter Playlist", description="Candidate Playlist for Spotifylter")
