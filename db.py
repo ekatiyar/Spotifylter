@@ -3,8 +3,8 @@ from sqlalchemy.orm import sessionmaker, scoped_session
 from os import getenv
 import models
 
-import mock
-mock.set_vars()
+# import mock
+# mock.set_vars()
 
 engine = create_engine(getenv("DATABASE_URL"))
 
