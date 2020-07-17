@@ -2,7 +2,6 @@ from os import urandom, remove
 from flask import Flask, session, request, redirect
 from flask_session import Session
 import spotipy
-from time import mktime, gmtime
 from db import Scoped_Session
 from models import Users
 
@@ -36,13 +35,15 @@ def index():
     if not session.get('token_info'):
         auth_url = auth_manager.get_authorize_url()
         return f'<h2><a href="{auth_url}">Sign in</a></h2>'
-    
-    session['token_info'] = common.check_refresh(auth_manager, session.get('token_info'))
+
+    session['token_info'] = common.check_refresh(
+        auth_manager, session.get('token_info'))
 
     spotify.set_auth(session.get('token_info')["access_token"])
     return f'<h2>Hi {spotify.me()["display_name"]}, ' \
            f'<small><a href="/sign_out">[sign out]<a/></small></h2>' \
-           f'<a href="/setup">Create/Update Sptoifylter Account</a>'
+           f'<a href="/setup">Create/Update Spotifylter Account</a>' \
+           f'<br><a href="/remove">Delete Account</a>'
 
 
 @app.route('/sign_out')
@@ -53,33 +54,24 @@ def sign_out():
 
 @app.route('/setup')
 def playlists():
-    if not session.get('token_info'):
+    token_info = session.get('token_info')
+    if not token_info:
         return redirect('/')
-    spotify = spotipy.Spotify(session.get('token_info')['access_token'])
-    refresh_token = session.get('token_info')["refresh_token"]
-    user = spotify.me()
-    username = user["id"]
-    email = user["email"]
+    return common.gen_user(Scoped_Session, token_info) + f'<a href="/">[HOME]<a/>'
 
-    userdata = Scoped_Session.query(
-        Users).filter_by(username=user["id"]).first()
 
-    if userdata:
-        if userdata.refresh_token != refresh_token:
-            userdata.refresh_token = refresh_token
-            Scoped_Session.add(userdata)
-            Scoped_Session.commit()
-            return f'<h2>{user["display_name"]} has been updated</h2>'
-        else:
-            return f'<h2>{user["display_name"]} has already been registered</h2>'
-
-    playlist = spotify.user_playlist_create(
-        username, "Spotifylter Playlist", description="Candidate Playlist for Spotifylter")
-    new_user = Users(username=username, email=email, playlist_id=playlist["id"],
-                     refresh_token=refresh_token, last_email=int(mktime(gmtime())))
-    Scoped_Session.add(new_user)
-    Scoped_Session.commit()
-    return f'<h2>{user["display_name"]} has been created</h2>'
+@app.route('/remove')
+def remove_user():
+    token_info = session.get('token_info')
+    if not token_info:
+        return redirect('/')
+    res = common.delete_user(Scoped_Session, token_info)
+    if res:
+        return f'<h2>Deletion Successfull</h2>' \
+               f'<a href="/">[HOME]<a/>'
+    else:
+        return f'<h2>Deletion Failed, {res} Accounts Matched</h2>' \
+               f'<a href="/">[HOME]<a/>'
 
 
 @app.teardown_appcontext
