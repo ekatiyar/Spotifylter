@@ -1,0 +1,23 @@
+{
+	"name": "Spotifylter Curation Service",
+	"description": "Adds a level of automation to filtering songs in and out of Spotify Library",
+	"repository": "https://github.com/ekatiyar/Spotifylter",
+	"buildpacks": [ { "url": "heroku/python" } ],
+	"addons": [ "heroku-postgresql" ],
+	"env": {
+		"SPOTIPY_CLIENT_ID": {
+			"description": "Spotify App Client ID obtained from App Registration"
+		},
+		"SPOTIPY_CLIENT_SECRET": {
+			"description": "Spotify App Client Secret obtained from App Registration"
+		},
+		"SPOTIPY_REDIRECT_URI": {
+			"description": "Website URL"
+		}
+	},
+	"scripts": {
+		"postdeploy": "python db.py"
+	},
+	"success_url": "/",
+	"keywords": [ "python", "flask", "spotify", "postgresql" ]
+}
