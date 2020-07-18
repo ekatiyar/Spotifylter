@@ -12,7 +12,8 @@
 			"description": "Spotify App Client Secret obtained from App Registration"
 		},
 		"SPOTIPY_REDIRECT_URI": {
-			"description": "Website URL"
+			"description": "Website URL: replace app-name with your app-name and register this on Spotify Dashboard",
+			"value": "https://app-name.herokuapp.com/"
 		}
 	},
 	"scripts": {
