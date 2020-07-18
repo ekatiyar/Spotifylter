@@ -126,10 +126,8 @@ def update_playlist(username: str, playlist_id: str, song_id: str) -> bool:
     s = db.Session_Factory()
     counts: models.Counts = s.query(
         models.Counts).filter_by(username=username).first()
-    if not counts.playlist:
-        counts.playlist = dict()
-    counts.playlist[song_id] = str(int(counts.playlist.setdefault(
-        song_id, 0)) + 1)
+    counts.playlist[song_id] = counts.playlist.setdefault(
+        song_id, 0) + 1
     s.add(counts)
     s.commit()
-    return int(counts.playlist[song_id]) > max_plays
+    return counts.playlist[song_id] > max_plays

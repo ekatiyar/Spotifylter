@@ -1,8 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy.dialects.postgresql import HSTORE, ARRAY
+from sqlalchemy import Column, Integer, String, JSON, ForeignKey
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.mutable import MutableDict
-from sqlalchemy.orm import relationship
 from time import strftime
 
 Base = declarative_base()
@@ -26,6 +25,6 @@ class Counts(Base):
 
     username = Column(String, ForeignKey('users.username',
                                          ondelete="CASCADE"), primary_key=True)
-    playlist = Column(MutableDict.as_mutable(HSTORE))
-    library = Column(MutableDict.as_mutable(HSTORE))
+    playlist = Column(MutableDict.as_mutable(JSON))
+    library = Column(MutableDict.as_mutable(JSON))
     filtered = Column(ARRAY(String))
