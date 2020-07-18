@@ -67,7 +67,7 @@ def remove_user():
         return redirect('/')
     res = common.delete_user(Scoped_Session, token_info)
     if res:
-        return f'<h2>Deletion Successfull</h2>' \
+        return f'<h2>Deletion Successful, {res} Accounts Deleted</h2>' \
                f'<a href="/">[HOME]<a/>'
     else:
         return f'<h2>Deletion Failed, {res} Accounts Matched</h2>' \

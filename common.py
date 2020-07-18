@@ -5,15 +5,17 @@ from time import time
 import models
 import db
 
+# Global Variables
 scopes_list = [
-    "playlist-modify-public",
-    "playlist-modify-private",
-    "user-read-currently-playing",
     "user-read-playback-state",
-    "user-library-read",
     "user-read-email",
-    "user-top-read"
+    "user-top-read",
+    "user-read-currently-playing",
+    "playlist-read-private",
+    "playlist-modify-private",
+    "user-library-read",
 ]
+max_plays = 5
 
 
 def get_token(auth_manager: spotipy.oauth2.SpotifyOAuth, refresh_token: str) -> dict:
@@ -33,7 +35,7 @@ def gen_spotify(token_info: dict) -> spotipy.Spotify:
     auth_manager = spotipy.oauth2.SpotifyOAuth(
         scope=" ".join(scopes_list), cache_path='.tokens')
     token_info = check_refresh(auth_manager, token_info)
-    spotify = spotipy.Spotify(token_info['access_token'])
+    spotify = spotipy.Spotify(auth=token_info['access_token'])
     return spotify
 
 
@@ -49,6 +51,24 @@ def parse_uri(uri: str) -> str:
     return uri[ind:].split(':')[-1]
 
 
+def resolve_playlist(spotify: spotipy.Spotify, username: str, title: str, description: str) -> dict:
+    existing_playlists = spotify.user_playlists(username)
+    playlists_list: list = existing_playlists["items"]
+    while(playlists_list):
+        playlist = playlists_list.pop()
+        if playlist["name"] == title and playlist["description"] == description:
+            break
+        if len(playlists_list) == 0 and existing_playlists["next"]:
+            existing_playlists = spotify.next(existing_playlists)
+            playlists_list = existing_playlists["items"]
+        else:
+            playlist = None
+    if not playlist:
+        playlist = spotify.user_playlist_create(
+            username, title, public=False, description=description)
+    return playlist
+
+
 def gen_user(session, token_info: Dict) -> str:  # caller is responsible for closing session
     spotify = gen_spotify(token_info)
     refresh_token = token_info["refresh_token"]
@@ -56,25 +76,36 @@ def gen_user(session, token_info: Dict) -> str:  # caller is responsible for clo
     username = user["id"]
     email = user["email"]
 
-    userdata = session.query(
+    userdata: models.Users = session.query(
         models.Users).filter_by(username=user["id"]).first()
+
+    playlist = resolve_playlist(
+        spotify, username, "Spotifylter Playlist", "Candidate Playlist for Spotifylter")
 
     if userdata:
         if userdata.refresh_token != refresh_token:
             userdata.refresh_token = refresh_token
             session.add(userdata)
             session.commit()
-            return f'<h2>{user["display_name"]} has been updated</h2>'
+            return f'<h2>{user["display_name"]}\'s access token has been updated</h2>'
+        elif userdata.playlist_id != playlist["id"]:
+            userdata.playlist_id = playlist["id"]
+            session.add(userdata)
+            session.commit()
+            return f'<h2>{user["display_name"]}\'s target playlist has been updated</h2>'
         else:
             return f'<h2>{user["display_name"]} has already been registered</h2>'
 
     current_users = session.query(models.Users).count()
     if current_users < 255:
-        playlist = spotify.user_playlist_create(
-            username, "Spotifylter Playlist", description="Candidate Playlist for Spotifylter")
+
         new_user = models.Users(username=username, email=email, playlist_id=playlist["id"],
                                 refresh_token=refresh_token, last_email=int(time()))
+        new_counts = models.Counts(
+            username=username, playlist=dict(), library=dict(), filtered=[])
         session.add(new_user)
+        session.commit()
+        session.add(new_counts)
         session.commit()
         return f'<h2>{user["display_name"]} has been created</h2>'
     else:
@@ -89,3 +120,16 @@ def delete_user(session, token_info) -> bool:  # caller is responsible for closi
         username=username).delete(synchronize_session=False)
     session.commit()
     return res
+
+
+def update_playlist(username: str, playlist_id: str, song_id: str) -> bool:
+    s = db.Session_Factory()
+    counts: models.Counts = s.query(
+        models.Counts).filter_by(username=username).first()
+    if not counts.playlist:
+        counts.playlist = dict()
+    counts.playlist[song_id] = str(int(counts.playlist.setdefault(
+        song_id, 0)) + 1)
+    s.add(counts)
+    s.commit()
+    return int(counts.playlist[song_id]) > max_plays
