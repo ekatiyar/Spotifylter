@@ -16,6 +16,7 @@ scopes_list = [
     "user-library-read",
 ]
 max_plays = 5
+max_users = 10
 
 
 def get_token(auth_manager: spotipy.oauth2.SpotifyOAuth, refresh_token: str) -> dict:
@@ -97,7 +98,7 @@ def gen_user(session, token_info: Dict) -> str:  # caller is responsible for clo
             return f'<h2>{user["display_name"]} has already been registered</h2>'
 
     current_users = session.query(models.Users).count()
-    if current_users < 255:
+    if current_users < max_users:
 
         new_user = models.Users(username=username, email=email, playlist_id=playlist["id"],
                                 refresh_token=refresh_token, last_email=int(time()))
