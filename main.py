@@ -51,6 +51,7 @@ def main_user_loop(token_info: dict, playlist_id: str, last_email: int) -> None:
             common.update_library(user["id"], cached_song)
         in_candidate = cached_song.get('context') and cached_song['context']['type'] == 'playlist' and common.parse_uri(
             cached_song['context']["uri"]) == playlist_id
+        flagged = False
         if in_candidate:
             flagged = common.update_playlist(
                 user["id"], cached_song)
