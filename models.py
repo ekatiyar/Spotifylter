@@ -25,6 +25,8 @@ class Counts(Base):
 
     username = Column(String, ForeignKey('users.username',
                                          ondelete="CASCADE"), primary_key=True)
+    # Heroku DB Row Limits for free users necessitate using dictionaries rather than db rows
     playlist = Column(MutableDict.as_mutable(JSON))
     library = Column(MutableDict.as_mutable(JSON))
+    other = Column(MutableDict.as_mutable(JSON))
     filtered = Column(ARRAY(String))

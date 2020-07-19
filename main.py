@@ -13,7 +13,7 @@ from db import Session_Factory
 # Global variables
 auth_manager = spotipy.oauth2.SpotifyOAuth(
     scope=" ".join(common.scopes_list), cache_path='.tokens')
-active_wait = 5
+active_wait = 1
 inactive_wait = 60*5
 
 
@@ -49,7 +49,8 @@ def main_user_loop(token_info: dict, playlist_id: str, last_email: int) -> None:
         in_candidate = cached_song.get('context') and cached_song['context']['type'] == 'playlist' and common.parse_uri(
             cached_song['context']["uri"]) == playlist_id
         if in_candidate:
-            flagged = common.update_playlist(user["id"], playlist_id, song_id)
+            flagged = common.update_count(
+                user["id"], cached_song)
 
         if (in_candidate and in_saved[0]) or flagged:
             sp.user_playlist_remove_all_occurrences_of_tracks(
