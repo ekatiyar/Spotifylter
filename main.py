@@ -35,6 +35,7 @@ def main_user_loop(token_info: dict, playlist_id: str, last_email: int) -> None:
 
         # If null (no devices using spotify) or not playing, deactivate thread
         if not results or not results["is_playing"]:
+            print(f'Spinning down thread for {user["id"]}')
             return
 
         # if no difference, update cache and sleep
