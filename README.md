@@ -11,8 +11,8 @@ Adds a level of automation to filtering songs in and out of Spotify Library
 
 3. Set the client id, client secret, and redirect urls as environment variables in heroku.
 
-<img src="https://raw.githubusercontent.com/ekatiyar/Spotifylter/master/images/idsecret.PNG" alt="Image of App Credentials" width="300"/>
-<img src="https://raw.githubusercontent.com/ekatiyar/Spotifylter/master/images/redirecturi.PNG" alt="Image of Redirect URI" width="300"/>
+<img src="https://raw.githubusercontent.com/ekatiyar/Spotifylter/master/images/idsecret.png" alt="Image of App Credentials" width="300"/>
+<img src="https://raw.githubusercontent.com/ekatiyar/Spotifylter/master/images/redirecturi.png" alt="Image of Redirect URI" width="300"/>
 
 
 ## Additional Information
