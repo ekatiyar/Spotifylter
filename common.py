@@ -101,11 +101,7 @@ def gen_user(session, token_info: Dict) -> str:  # caller is responsible for clo
 
         new_user = models.Users(username=username, email=email, playlist_id=playlist["id"],
                                 refresh_token=refresh_token, last_email=int(time()))
-        new_counts = models.Counts(
-            username=username, playlist=dict(), library=dict(), other=dict(), filtered=[])
         session.add(new_user)
-        session.commit()
-        session.add(new_counts)
         session.commit()
         return f'<h2>{user["display_name"]} has been created</h2>'
     else:
@@ -124,71 +120,43 @@ def delete_user(session, token_info) -> bool:  # caller is responsible for closi
 # TODO: Lots of copied code here... fix pls
 
 
-def update_other(username: str, song: dict) -> None:
+def update_song(username: str, song: dict, location: str) -> bool:
     song_id = song["item"]["id"]
     progress = song["progress_ms"]/1000
     duration = song["item"]["duration_ms"]/1000
     s = db.Session_Factory()
     counts: models.Counts = s.query(
-        models.Counts).filter_by(username=username).first()
-    counts.other[song_id] = CountData.add_entry(counts.other.setdefault(
-        song_id, [0, 0, duration]), progress)
+        models.Counts).filter_by(username=username, song=song_id).first()
+    if counts:
+        counts.song_avg = update_avg(
+            counts.song_count, progress, counts.song_avg)
+        counts.song_count += 1
+    else:
+        counts = models.Counts(username=username, song=song_id, location=location,
+                               song_count=1, song_avg=progress, song_duration=duration, filtered=False)
     s.add(counts)
+    ret = counts.song_count >= max_plays
     s.commit()
     s.close()
+    return ret
 
 
-def update_library(username: str, song: dict) -> None:
+def update_filtered(username: str, sp: spotipy.Spotify, playlist_id: str, song: dict, new_location: str):
     song_id = song["item"]["id"]
-    progress = song["progress_ms"]/1000
-    duration = song["item"]["duration_ms"]/1000
-    s = db.Session_Factory()
-    counts: models.Counts = s.query(
-        models.Counts).filter_by(username=username).first()
-    counts.library[song_id] = CountData.add_entry(counts.library.setdefault(
-        song_id, [0, 0, duration]), progress)
-    s.add(counts)
-    s.commit()
-    s.close()
-
-
-def update_playlist(username: str, song: dict) -> bool:
-    song_id = song["item"]["id"]
-    progress = song["progress_ms"]/1000
-    duration = song["item"]["duration_ms"]/1000
-    s = db.Session_Factory()
-    counts: models.Counts = s.query(
-        models.Counts).filter_by(username=username).first()
-    counts.playlist[song_id] = CountData.add_entry(counts.playlist.setdefault(
-        song_id, [0, 0, duration]), progress)
-    s.add(counts)
-    s.commit()
-    s.close()
-    return CountData.get_count(counts.playlist[song_id]) > max_plays
-
-
-def update_filtered(username: str, sp: spotipy.Spotify, playlist_id: str, song_id: str):
     sp.user_playlist_remove_all_occurrences_of_tracks(
         username, playlist_id, [song_id])
     s = db.Session_Factory()
     counts: models.Counts = s.query(
-        models.Counts).filter_by(username=username).first()
-    counts.filtered.append(song_id)
-    s.add(counts)
-    s.commit()
+        models.Counts).filter_by(username=username, song=song_id).first()
+    if counts:
+        counts.location = new_location
+        counts.song_count = 0
+        counts.song_avg = 0
+        counts.filtered = True
+        s.add(counts)
+        s.commit()
     s.close()
 
 
-class CountData(list):
-    def __init__(self, count: int, avg_duration: float, tot_duration: float):
-        super().__init__()
-        self.extend((count, avg_duration, tot_duration))
-
-    def add_entry(self, progress: float):
-        prev_count = self[0]
-        self[0] += 1
-        self[1] = (self[1]*prev_count + progress)/self[0]
-        return self
-
-    def get_count(self):
-        return self[0]
+def update_avg(prev_count: int, progress: float, avg_progress: float) -> float:
+    return (avg_progress*prev_count + progress)/(prev_count+1)

@@ -38,29 +38,31 @@ def main_user_loop(token_info: dict, playlist_id: str, last_email: int) -> None:
             print(f'Spinning down thread for {user["id"]}')
             return
 
-        # if no difference, update cache and sleep
-        if not cached_song or results["item"]["id"] == cached_song["item"]["id"]:
+        # if no difference or item unavailable, update cache and sleep
+        if not cached_song or not cached_song.get('item') or not results.get('item') or results["item"]["id"] == cached_song["item"]["id"]:
             cached_song = results
             sleep(active_wait)
             continue
 
         song_id = cached_song["item"]["id"]
 
-        in_saved = sp.current_user_saved_tracks_contains([song_id])
-        if in_saved[0]:
-            common.update_library(user["id"], cached_song)
+        in_saved = sp.current_user_saved_tracks_contains([song_id])[0]
         in_candidate = cached_song.get('context') and cached_song['context']['type'] == 'playlist' and common.parse_uri(
             cached_song['context']["uri"]) == playlist_id
-        flagged = False
-        if in_candidate:
-            flagged = common.update_playlist(
-                user["id"], cached_song)
 
-        if not in_candidate and not in_saved[0]:
-            common.update_other(user["id"], cached_song)
-
-        if (in_candidate and in_saved[0]) or flagged:
-            common.update_filtered(user["id"], sp, playlist_id, song_id)
+        if in_saved and in_candidate:
+            common.update_filtered(
+                user["id"], sp, playlist_id, cached_song, "library")
+            common.update_song(user["id"], cached_song, "library")
+        elif in_saved:
+            common.update_song(user["id"], cached_song, "library")
+        elif in_candidate:
+            flagged = common.update_song(user["id"], cached_song, "playlist")
+            if flagged:
+                common.update_filtered(
+                    user["id"], sp, playlist_id, cached_song, "other")
+        else:
+            common.update_song(user["id"], cached_song, "other")
 
         cached_song = results  # NOTE: This must be the last line of the for loop
         sleep(active_wait)

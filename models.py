@@ -1,6 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, JSON, ForeignKey
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
 from sqlalchemy.ext.mutable import MutableDict, MutableList
 from time import strftime
 
@@ -25,8 +24,9 @@ class Counts(Base):
 
     username = Column(String, ForeignKey('users.username',
                                          ondelete="CASCADE"), primary_key=True)
-    # Heroku DB Row Limits for free users necessitate using dictionaries rather than db rows
-    playlist = Column(MutableDict.as_mutable(JSON))
-    library = Column(MutableDict.as_mutable(JSON))
-    other = Column(MutableDict.as_mutable(JSON))
-    filtered = Column(MutableList.as_mutable(ARRAY(String)))
+    song = Column(String, primary_key=True)
+    location = Column(String)
+    song_count = Column(Integer)
+    song_avg = Column(Float)
+    song_duration = Column(Float)
+    filtered = Column(Boolean)
