@@ -46,15 +46,19 @@ def main_user_loop(token_info: dict, playlist_id: str, last_email: int) -> None:
         song_id = cached_song["item"]["id"]
 
         in_saved = sp.current_user_saved_tracks_contains([song_id])
+        if in_saved[0]:
+            common.update_library(user["id"], cached_song)
         in_candidate = cached_song.get('context') and cached_song['context']['type'] == 'playlist' and common.parse_uri(
             cached_song['context']["uri"]) == playlist_id
         if in_candidate:
-            flagged = common.update_count(
+            flagged = common.update_playlist(
                 user["id"], cached_song)
 
+        if not in_candidate and not in_saved[0]:
+            common.update_other(user["id"], cached_song)
+
         if (in_candidate and in_saved[0]) or flagged:
-            sp.user_playlist_remove_all_occurrences_of_tracks(
-                user["id"], playlist_id, [song_id])
+            common.update_filtered(user["id"], sp, playlist_id, song_id)
 
         cached_song = results  # NOTE: This must be the last line of the for loop
         sleep(active_wait)

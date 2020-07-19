@@ -1,7 +1,7 @@
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import ARRAY
-from sqlalchemy.ext.mutable import MutableDict
+from sqlalchemy.ext.mutable import MutableDict, MutableList
 from time import strftime
 
 Base = declarative_base()
@@ -29,4 +29,4 @@ class Counts(Base):
     playlist = Column(MutableDict.as_mutable(JSON))
     library = Column(MutableDict.as_mutable(JSON))
     other = Column(MutableDict.as_mutable(JSON))
-    filtered = Column(ARRAY(String))
+    filtered = Column(MutableList.as_mutable(ARRAY(String)))

@@ -121,8 +121,36 @@ def delete_user(session, token_info) -> bool:  # caller is responsible for closi
     session.commit()
     return res
 
+# TODO: Lots of copied code here... fix pls
 
-def update_count(username: str, song: dict) -> bool:
+
+def update_other(username: str, song: dict) -> None:
+    song_id = song["item"]["id"]
+    progress = song["progress_ms"]/1000
+    duration = song["item"]["duration_ms"]/1000
+    s = db.Session_Factory()
+    counts: models.Counts = s.query(
+        models.Counts).filter_by(username=username).first()
+    counts.other[song_id] = CountData.add_entry(counts.other.setdefault(
+        song_id, [0, 0, duration]), progress)
+    s.add(counts)
+    s.commit()
+
+
+def update_library(username: str, song: dict) -> None:
+    song_id = song["item"]["id"]
+    progress = song["progress_ms"]/1000
+    duration = song["item"]["duration_ms"]/1000
+    s = db.Session_Factory()
+    counts: models.Counts = s.query(
+        models.Counts).filter_by(username=username).first()
+    counts.library[song_id] = CountData.add_entry(counts.library.setdefault(
+        song_id, [0, 0, duration]), progress)
+    s.add(counts)
+    s.commit()
+
+
+def update_playlist(username: str, song: dict) -> bool:
     song_id = song["item"]["id"]
     progress = song["progress_ms"]/1000
     duration = song["item"]["duration_ms"]/1000
@@ -134,6 +162,17 @@ def update_count(username: str, song: dict) -> bool:
     s.add(counts)
     s.commit()
     return CountData.get_count(counts.playlist[song_id]) > max_plays
+
+
+def update_filtered(username: str, sp: spotipy.Spotify, playlist_id: str, song_id: str):
+    sp.user_playlist_remove_all_occurrences_of_tracks(
+        username, playlist_id, [song_id])
+    s = db.Session_Factory()
+    counts: models.Counts = s.query(
+        models.Counts).filter_by(username=username).first()
+    counts.filtered.append(song_id)
+    s.add(counts)
+    s.commit()
 
 
 class CountData(list):
