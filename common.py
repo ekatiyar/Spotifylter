@@ -135,6 +135,7 @@ def update_other(username: str, song: dict) -> None:
         song_id, [0, 0, duration]), progress)
     s.add(counts)
     s.commit()
+    s.close()
 
 
 def update_library(username: str, song: dict) -> None:
@@ -148,6 +149,7 @@ def update_library(username: str, song: dict) -> None:
         song_id, [0, 0, duration]), progress)
     s.add(counts)
     s.commit()
+    s.close()
 
 
 def update_playlist(username: str, song: dict) -> bool:
@@ -161,6 +163,7 @@ def update_playlist(username: str, song: dict) -> bool:
         song_id, [0, 0, duration]), progress)
     s.add(counts)
     s.commit()
+    s.close()
     return CountData.get_count(counts.playlist[song_id]) > max_plays
 
 
@@ -173,6 +176,7 @@ def update_filtered(username: str, sp: spotipy.Spotify, playlist_id: str, song_i
     counts.filtered.append(song_id)
     s.add(counts)
     s.commit()
+    s.close()
 
 
 class CountData(list):
