@@ -5,6 +5,9 @@ from time import time
 import models
 import db
 
+# import mock
+# mock.set_vars()
+
 # Global Variables
 scopes_list = [
     "user-read-playback-state",
