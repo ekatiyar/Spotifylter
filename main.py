@@ -80,7 +80,7 @@ def users_manager():
             if sp.currently_playing():
                 print(f'Spinning up thread for {user.username}')
                 thread = threading.Thread(target=main_user_loop, args=(
-                    token_info, user.playlist_id, user.last_email))
+                    token_info, user.playlist_id, user.last_email), daemon=True)
                 threads[user.username] = thread
                 thread.start()
         sleep(inactive_wait)
