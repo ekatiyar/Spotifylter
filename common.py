@@ -132,6 +132,7 @@ def update_song(username: str, song: dict, location: str) -> bool:
         counts.song_avg = update_avg(
             counts.song_count, progress, counts.song_avg)
         counts.song_count += 1
+        counts.location = location
     else:
         counts = models.Counts(username=username, song=song_id, location=location,
                                song_count=1, song_avg=progress, song_duration=duration, filtered=False)
