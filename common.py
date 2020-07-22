@@ -4,6 +4,7 @@ from typing import List, Dict
 from time import time
 import models
 import db
+from threading import Thread
 
 # import mock
 # mock.set_vars()
@@ -20,6 +21,15 @@ scopes_list = [
 ]
 max_plays = 5
 max_users = 10
+
+
+class UserThread:
+    def __init__(self, thread: Thread, token_info: dict):
+        self.thread = thread
+        self.token_info = token_info
+
+    def is_alive(self) -> bool:
+        return self.thread.is_alive()
 
 
 def get_token(auth_manager: spotipy.oauth2.SpotifyOAuth, refresh_token: str) -> dict:
@@ -135,7 +145,7 @@ def update_song(username: str, song: dict, location: str) -> bool:
         counts.song_avg = update_avg(
             counts.song_count, progress, counts.song_avg)
         counts.song_count += 1
-        if location in ["library", "playlist"]:
+        if counts.location == "other":
             counts.location = location
     else:
         counts = models.Counts(username=username, song=song_id, location=location,
@@ -166,3 +176,15 @@ def update_filtered(username: str, sp: spotipy.Spotify, playlist_id: str, song: 
 
 def update_avg(prev_count: int, progress: float, avg_progress: float) -> float:
     return (avg_progress*prev_count + progress)/(prev_count+1)
+
+
+def get_candidate_songs(sp: spotipy.Spotify, playlist_id: str) -> List[str]:
+    playlist = sp.playlist_tracks(playlist_id, fields="items(track(id)), next")
+    ret = []
+    cond = True
+    while(cond):
+        items = playlist["items"]
+        ret.extend([item["track"]["id"] for item in items])
+        cond = playlist.get("next")
+        playlist = sp.next(playlist)
+    return ret

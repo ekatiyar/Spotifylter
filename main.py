@@ -16,10 +16,10 @@ inactive_wait = 60
 
 
 # This function monitors user listening history
-def main_user_loop(username: str, token_info: dict, playlist_id: str, last_email: int) -> None:
-    sp = common.gen_spotify(token_info)
+def main_user_loop(sp: spotipy.Spotify, username: str, token_info: dict, playlist_id: str, last_email: int) -> None:
 
-    cached_song = None
+    cached_song: Dict = dict()
+    in_playlist = common.get_candidate_songs(sp, playlist_id)
     while(True):
 
         # Refresh token if needed:
@@ -36,20 +36,21 @@ def main_user_loop(username: str, token_info: dict, playlist_id: str, last_email
             return
 
         # if no difference or item unavailable, update cache and sleep
-        if not cached_song or not cached_song.get('item') or not results.get('item') or results["item"]["id"] == cached_song["item"]["id"]:
+        if not "item" in cached_song or not "item" in results or results["item"]["id"] == cached_song["item"]["id"]:
             cached_song = results
             sleep(active_wait)
             continue
 
+        # Store cached song to db so we can update
         song_id = cached_song["item"]["id"]
 
         in_saved = sp.current_user_saved_tracks_contains([song_id])[0]
-        in_candidate = cached_song.get('context') and cached_song['context']['type'] == 'playlist' and common.parse_uri(
-            cached_song['context']["uri"]) == playlist_id
+        in_candidate = song_id in in_playlist
 
         if in_saved and in_candidate:
             common.update_filtered(
                 username, sp, playlist_id, cached_song, "library")
+            in_playlist = [pid for pid in in_playlist if pid != song_id]
             common.update_song(username, cached_song, "library")
         elif in_saved:
             common.update_song(username, cached_song, "library")
@@ -67,22 +68,33 @@ def main_user_loop(username: str, token_info: dict, playlist_id: str, last_email
 
 def users_manager():
     s = Session_Factory()
-    threads: Dict[str, threading.Thread] = dict()
+    threads: Dict[str, common.UserThread] = dict()
     while(True):
         for user in s.query(Users).all():
-            if threads.get(user.username) and threads[user.username].is_alive():
+            try:
+                if user.username in threads and threads[user.username].is_alive():
+                    continue
+                elif user.username in threads:
+                    token_info = common.check_refresh(
+                        auth_manager, threads[user.username].token_info)
+                else:
+                    token_info = common.get_token(
+                        auth_manager, user.refresh_token)
+            except spotipy.exceptions.SpotifyException as e:
+                print(f"Failed to get token for {user.username}: {e}")
                 continue
-            token_info = common.get_token(auth_manager, user.refresh_token)
+
             sp = common.gen_spotify(token_info)
             results = sp.currently_playing()
             if results and results["is_playing"]:
                 print(f'Spinning up thread for {user.username}')
                 thread = threading.Thread(target=main_user_loop, args=(
-                    user.username, token_info, user.playlist_id, user.last_email), daemon=True)
-                threads[user.username] = thread
+                    sp, user.username, token_info, user.playlist_id, user.last_email), daemon=True)
+                threads[user.username] = common.UserThread(thread, token_info)
                 thread.start()
         sleep(inactive_wait)
-    s.close()
+
+    s.close()  # TODO: Implement signal handling
 
 
 if __name__ == "__main__":
