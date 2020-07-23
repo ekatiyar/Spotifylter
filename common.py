@@ -13,6 +13,7 @@ from threading import Thread
 scopes_list = [
     "user-read-playback-state",
     "user-read-email",
+    "playlist-read-collaborative",
     "user-top-read",
     "user-read-currently-playing",
     "playlist-read-private",
@@ -70,7 +71,7 @@ def resolve_playlist(spotify: spotipy.Spotify, username: str, title: str, descri
     playlists_list: list = existing_playlists["items"]
     while(playlists_list):
         playlist = playlists_list.pop()
-        if playlist["name"] == title and playlist["description"] == description:
+        if playlist["description"] == description:
             break
         if len(playlists_list) == 0 and existing_playlists["next"]:
             existing_playlists = spotify.next(existing_playlists)
@@ -94,7 +95,7 @@ def gen_user(session, token_info: Dict) -> str:  # caller is responsible for clo
         models.Users).filter_by(username=user["id"]).first()
 
     playlist = resolve_playlist(
-        spotify, username, "Spotifylter Playlist", "Candidate Playlist for Spotifylter")
+        spotify, username, "Spotifylter Playlist", "Spotifylter Auto-Curate")
 
     if userdata:
         if userdata.refresh_token != refresh_token:

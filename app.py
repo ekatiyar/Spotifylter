@@ -6,8 +6,6 @@ from db import Scoped_Session
 from models import Users
 
 import common
-# import mock
-# mock.set_vars()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = urandom(64)
