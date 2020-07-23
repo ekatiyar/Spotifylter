@@ -2,8 +2,6 @@ import os
 import spotipy
 import common
 
-# TODO: Replace this with some front-end way to authenticate on heroku
-
 
 def setup() -> None:
     cid = input("SPOTIPY CLIENT ID: ")
