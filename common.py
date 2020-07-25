@@ -1,6 +1,6 @@
 import os
 import spotipy
-from typing import List, Dict
+from typing import List, Dict, Generator, Tuple
 from time import time
 import models
 import db
@@ -66,22 +66,49 @@ def parse_uri(uri: str) -> str:
     return uri[ind:].split(':')[-1]
 
 
-def resolve_playlist(spotify: spotipy.Spotify, username: str, title: str, description: str, create: bool = False) -> dict:
+def resolve_playlist(spotify: spotipy.Spotify, username: str, title: str, description: str, create: bool = False, collab: bool = False) -> Dict[str, Dict]:
     existing_playlists = spotify.user_playlists(username)
     playlists_list: list = existing_playlists["items"]
+    ret: Dict[str, Dict] = dict()
     while(playlists_list):
         playlist = playlists_list.pop()
-        if playlist["description"] == description:
-            break
+        if playlist["description"] == description and (not collab or (collab and playlist.get("collaborative", False))):
+            ret[playlist["id"]] = playlist
         if len(playlists_list) == 0 and existing_playlists["next"]:
             existing_playlists = spotify.next(existing_playlists)
             playlists_list = existing_playlists["items"]
         else:
             playlist = None
-    if not playlist and create:
+    if not ret and create:
         playlist = spotify.user_playlist_create(
             username, title, public=False, description=description)
-    return playlist
+        ret[playlist["id"]] = playlist
+    return ret
+
+
+def update_playlists(session, userdata: models.User, add: Dict[str, Dict], existing: Generator[models.Playlist, None, None], candidate: bool, retstring: str = "") -> Tuple[models.User, str]:
+    checkset = set(add.keys())
+    for playlist in existing:
+        if playlist.playlist_id in checkset:
+            del add[playlist.playlist_id]
+        else:
+            is_owner = playlist.playlist_id == userdata.username
+            if is_owner:
+                session.delete(playlist)
+            del userdata.playlists[playlist.playlist_id]
+
+    for playlist in add.values():
+        is_owner = playlist["owner"]["id"] == userdata.username
+        if is_owner:
+            userdata.playlists[playlist["id"]] = models.Playlist(
+                playlist_id=playlist["id"], owner=playlist["owner"]["id"], candidate=candidate)
+        else:
+            existing_playlists = session.query(models.Playlist).filter_by(
+                playlist_id=playlist["id"]).first()
+            if existing_playlists:
+                userdata.playlists[playlist["id"]] = existing_playlists
+
+    return userdata, retstring+f'<h2>Stored Playlists Updated</h2><br>'
 
 
 def gen_user(session, token_info: Dict) -> str:  # caller is responsible for closing session
@@ -94,61 +121,45 @@ def gen_user(session, token_info: Dict) -> str:  # caller is responsible for clo
     userdata: models.User = session.query(
         models.User).filter_by(username=user["id"]).first()
 
-    playlist = resolve_playlist(
-        spotify, username, "Spotifylter Playlist", "Spotifylter Auto-Curate", True)
-    collab = resolve_playlist(
-        spotify, username, "Spotifylter Collab", "Spotifylter Auto-Collab")
-    if not collab.get("collaborative"):
-        collab = None
+    candidates = resolve_playlist(
+        spotify, username, "Spotifylter Playlist", "Spotifylter Auto-Curate", create=True)
+    collabs = resolve_playlist(
+        spotify, username, "Spotifylter Collab", "Spotifylter Auto-Collab", collab=True)
+
     if userdata:
         retstring = ""
         if userdata.refresh_token != refresh_token:
             userdata.refresh_token = refresh_token
-            session.add(userdata)
-            session.commit()
             retstring += f'<h2>{user["display_name"]}\'s access token has been updated</h2><br>'
-        db_curate = userdata.playlists.get("curate")
-        db_collab = userdata.playlists.get("collab")
-        if db_curate.playlist_id != playlist["id"]:
-            session.delete(db_curate)
-            db_curate.playlist_id = playlist["id"]
-            session.add(db_curate)
-            session.commit()
-            retstring += f'<h2>{user["display_name"]}\'s target playlist has been updated</h2><br>'
-        if collab and (not db_collab or db_collab.playlist_id != collab["id"]):
-            is_owner = collab["owner"]["id"] == username
-            if not db_collab:
-                new_collab = models.Playlist(
-                    playlist_id=collab["id"], username=username, owner=is_owner, playlist_type="collab")
-                session.add(new_collab)
-                session.commit()
-                retstring += f'<h2>{user["display_name"]}\'s collab playlist has been added</h2><br>'
-            else:
-                session.delete(db_collab)
-                db_collab.playlist_id = collab["id"]
-                db_collab.owner = collab["owner"]
-                session.add(db_collab)
-                session.commit()
-                retstring += f'<h2>{user["display_name"]}\'s collab playlist has been updated</h2><br>'
+        db_curates: Generator[models.Playlist, None, None] = (pl for pl in userdata.playlists.values()
+                                                              if pl.candidate == True)
+        db_collabs: Generator[models.Playlist, None, None] = (pl for pl in userdata.playlists.values()
+                                                              if pl.candidate == False)
+        userdata, retstring = update_playlists(
+            session, userdata, candidates, db_curates, True, retstring)
+        userdata, retstring = update_playlists(
+            session, userdata, collabs, db_collabs, False, retstring)
         if retstring == "":
             return f'<h2>{user["display_name"]} has already been registered</h2>'
         else:
+            session.add(userdata)
+            session.commit()
             return retstring
 
     current_users = session.query(models.User).count()
     if current_users < max_users:
-        is_owner = playlist["owner"]["id"] == username
+        retstring = ""
         new_user = models.User(username=username, email=email,
                                refresh_token=refresh_token, last_updated=int(time()))
-        new_user.playlists["curate"] = models.Playlist(
-            playlist_id=playlist["id"], username=username, owner=is_owner, playlist_type="curate")
-        if collab:
-            is_owner = collab["owner"]["id"] == username
-            new_user.playlists["collab"] = models.Playlist(
-                playlist_id=collab["id"], username=username, owner=is_owner, playlist_type="collab")
         session.add(new_user)
         session.commit()
-        return f'<h2>{user["display_name"]} has been created</h2>'
+        new_user, retstring = update_playlists(
+            session, new_user, candidates, iter([]), True, retstring)
+        new_user, retstring = update_playlists(
+            session, new_user, collabs, iter([]), False, retstring)
+        session.add(new_user)
+        session.commit()
+        return retstring + f'<h2>{user["display_name"]} has been created</h2>'
     else:
         return f'<h2>The user limit: {current_users}/{max_users} has been reached. Account creation failed</h2>'
 
@@ -158,7 +169,7 @@ def delete_user(session, token_info) -> bool:  # caller is responsible for closi
     user = spotify.me()
     username = user["id"]
     res = session.query(models.User).filter_by(
-        username=username).delete(synchronize_session=False)
+        username=username).delete()
     session.commit()
     return res
 

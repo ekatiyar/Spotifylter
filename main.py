@@ -5,7 +5,7 @@ from typing import List, Dict
 import threading
 
 import common
-from models import Users
+from models import User
 from db import Session_Factory
 
 # Global variables
@@ -16,10 +16,11 @@ inactive_wait = 60
 
 
 # This function monitors user listening history
-def main_user_loop(sp: spotipy.Spotify, username: str, token_info: dict, playlist_id: str, last_email: int) -> None:
+def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
 
     cached_song: Dict = dict()
-    in_playlist = common.get_candidate_songs(sp, playlist_id)
+    username = userinfo.username
+
     while(True):
 
         # Refresh token if needed:
@@ -45,19 +46,19 @@ def main_user_loop(sp: spotipy.Spotify, username: str, token_info: dict, playlis
         song_id = cached_song["item"]["id"]
 
         in_saved = sp.current_user_saved_tracks_contains([song_id])[0]
-        in_candidate = song_id in in_playlist
+        location = None
+        if cached_song.get('context') and cached_song['context']['type'] == 'playlist':
+            location = userinfo.playlists.get(common.parse_uri(
+                cached_song['context']["uri"]))
 
-        if in_saved and in_candidate:
-            common.update_filtered(
-                username, sp, playlist_id, cached_song, "library")
-            in_playlist = [pid for pid in in_playlist if pid != song_id]
-            common.update_song(username, cached_song, "library")
-        elif in_saved:
-            common.update_song(username, cached_song, "library")
-        elif in_candidate:
+        if in_saved and location:
+            common.filter_out(
+                username, sp, location, cached_song, None)
+            common.update_song(username, cached_song, None)
+        elif location:
             flagged = common.update_song(username, cached_song, "playlist")
             if flagged:
-                common.update_filtered(
+                common.filter_out(
                     username, sp, playlist_id, cached_song, "other")
         else:
             common.update_song(username, cached_song, "other")
@@ -66,11 +67,11 @@ def main_user_loop(sp: spotipy.Spotify, username: str, token_info: dict, playlis
         sleep(active_wait)
 
 
-def users_manager():
+def service_manager():
     s = Session_Factory()
     threads: Dict[str, common.UserThread] = dict()
     while(True):
-        for user in s.query(Users).all():
+        for user in s.query(User).all():
             try:
                 if user.username in threads and threads[user.username].is_alive():
                     continue
@@ -88,8 +89,8 @@ def users_manager():
             results = sp.currently_playing()
             if results and results["is_playing"]:
                 print(f'Spinning up thread for {user.username}')
-                thread = threading.Thread(target=main_user_loop, args=(
-                    sp, user.username, token_info, user.playlist_id, user.last_email), daemon=True)
+                thread = threading.Thread(target=listeningd, args=(
+                    sp, user, token_info), daemon=True)
                 threads[user.username] = common.UserThread(thread, token_info)
                 thread.start()
         sleep(inactive_wait)
@@ -98,4 +99,4 @@ def users_manager():
 
 
 if __name__ == "__main__":
-    users_manager()
+    service_manager()
