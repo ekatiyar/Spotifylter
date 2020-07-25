@@ -5,7 +5,7 @@ from typing import List, Dict
 import threading
 
 import common
-from models import User
+from models import User, Playlist
 from db import Session_Factory
 
 # Global variables
@@ -46,22 +46,23 @@ def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
         song_id = cached_song["item"]["id"]
 
         in_saved = sp.current_user_saved_tracks_contains([song_id])[0]
-        location = None
+        candidate = False
         if cached_song.get('context') and cached_song['context']['type'] == 'playlist':
-            location = userinfo.playlists.get(common.parse_uri(
+            playlist: Playlist = userinfo.playlists.get(common.parse_uri(
                 cached_song['context']["uri"]))
+            candidate = playlist.candidate
 
-        if in_saved and location:
+        if in_saved and candidate:
             common.filter_out(
-                username, sp, location, cached_song, None)
-            common.update_song(username, cached_song, None)
-        elif location:
-            flagged = common.update_song(username, cached_song, "playlist")
+                username, sp, playlist.playlist_id, cached_song, True)
+            common.update_song(username, cached_song, False)
+        elif candidate:
+            flagged = common.update_song(username, cached_song, True)
             if flagged:
                 common.filter_out(
-                    username, sp, playlist_id, cached_song, "other")
+                    username, sp, playlist.playlist_id, cached_song, False)
         else:
-            common.update_song(username, cached_song, "other")
+            common.update_song(username, cached_song, False)
 
         cached_song = results  # NOTE: This must be the last line of the for loop
         sleep(active_wait)

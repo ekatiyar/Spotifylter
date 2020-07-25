@@ -107,6 +107,8 @@ def update_playlists(session, userdata: models.User, add: Dict[str, Dict], exist
                 playlist_id=playlist["id"]).first()
             if existing_playlists:
                 userdata.playlists[playlist["id"]] = existing_playlists
+        if candidate:  # Only one candidate playlist allowed
+            break
 
     return userdata, retstring+f'<h2>Stored Playlists Updated</h2><br>'
 
@@ -132,9 +134,9 @@ def gen_user(session, token_info: Dict) -> str:  # caller is responsible for clo
             userdata.refresh_token = refresh_token
             retstring += f'<h2>{user["display_name"]}\'s access token has been updated</h2><br>'
         db_curates: List[models.Playlist] = [pl for pl in userdata.playlists.values()
-                                                              if pl.candidate == True]
+                                             if pl.candidate == True]
         db_collabs: List[models.Playlist] = [pl for pl in userdata.playlists.values()
-                                                              if pl.candidate == False]
+                                             if pl.candidate == False]
         userdata, retstring = update_playlists(
             session, userdata, candidates, db_curates, True, retstring)
         userdata, retstring = update_playlists(
@@ -214,6 +216,10 @@ def filter_out(username: str, sp: spotipy.Spotify, playlist_id: str, song: dict,
                                      (count_row.song_count*count_row.song_avg))/new_data.song_count
                 count_row.filtered = True
                 s.add(new_data)
+            else:
+                count_row.candidate = False
+                count_row.filtered = True
+                s.add(count_row)
         s.commit()
     s.close()
 
