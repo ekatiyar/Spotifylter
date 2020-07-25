@@ -174,19 +174,19 @@ def delete_user(session, token_info) -> bool:  # caller is responsible for closi
     return res
 
 
-def update_song(username: str, song: dict, location: str) -> bool:
+def update_song(username: str, song: dict, candidate: bool) -> bool:
     song_id = song["item"]["id"]
     progress = song["progress_ms"]/1000
     duration = song["item"]["duration_ms"]/1000
     s = db.Session_Factory()
     counts: models.Count = s.query(
-        models.Count).filter_by(username=username, song=song_id, localtion=location).first()
+        models.Count).filter_by(username=username, song=song_id, candidate=candidate).first()
     if counts:
         counts.song_avg = update_avg(
             counts.song_count, progress, counts.song_avg)
         counts.song_count += 1
     else:
-        counts = models.Count(username=username, song=song_id, location=location,
+        counts = models.Count(username=username, song=song_id, candidate=candidate,
                               song_count=1, song_avg=progress, song_duration=duration, filtered=False)
     s.add(counts)
     ret = counts.song_count >= max_plays
@@ -195,28 +195,25 @@ def update_song(username: str, song: dict, location: str) -> bool:
     return ret
 
 
-def filter_out(username: str, sp: spotipy.Spotify, playlist_id: str, song: dict, new_location: str):
+def filter_out(username: str, sp: spotipy.Spotify, playlist_id: str, song: dict, preserve: bool):
     song_id = song["item"]["id"]
     sp.user_playlist_remove_all_occurrences_of_tracks(
         username, playlist_id, [song_id])
     s = db.Session_Factory()
     count_row: models.Count = s.query(
-        models.Count).filter_by(username=username, song=song_id, location=playlist_id).first()
+        models.Count).filter_by(username=username, song=song_id, candidate=True).first()
     if count_row:
         s.delete(count_row)
-        new_data: models.Count = s.query(models.Count).filter_by(
-            username=username, song=song_id, location=new_location).first()
-        if new_data:  # merge
-            prev_count = new_data.song_count
-            new_data.song_count += count_row.song_count
-            new_data.song_avg = ((prev_count*new_data.song_avg) +
-                                 (count_row.song_count*count_row.song_avg))/new_data.song_count
-            count_row.filtered = True
-            s.add(new_data)
-        else:
-            count_row.location = new_location
-            count_row.filtered = True
-            s.add(count_row)
+        if preserve:  # merge
+            new_data: models.Count = s.query(models.Count).filter_by(
+                username=username, song=song_id, candidate=False).first()
+            if new_data:
+                prev_count = new_data.song_count
+                new_data.song_count += count_row.song_count
+                new_data.song_avg = ((prev_count*new_data.song_avg) +
+                                     (count_row.song_count*count_row.song_avg))/new_data.song_count
+                count_row.filtered = True
+                s.add(new_data)
         s.commit()
     s.close()
 
