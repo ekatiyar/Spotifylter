@@ -86,13 +86,13 @@ def resolve_playlist(spotify: spotipy.Spotify, username: str, title: str, descri
     return ret
 
 
-def update_playlists(session, userdata: models.User, add: Dict[str, Dict], existing: Generator[models.Playlist, None, None], candidate: bool, retstring: str = "") -> Tuple[models.User, str]:
+def update_playlists(session, userdata: models.User, add: Dict[str, Dict], existing: List[models.Playlist], candidate: bool, retstring: str = "") -> Tuple[models.User, str]:
     checkset = set(add.keys())
     for playlist in existing:
         if playlist.playlist_id in checkset:
             del add[playlist.playlist_id]
         else:
-            is_owner = playlist.playlist_id == userdata.username
+            is_owner = playlist.owner == userdata.username
             if is_owner:
                 session.delete(playlist)
             del userdata.playlists[playlist.playlist_id]
@@ -131,10 +131,10 @@ def gen_user(session, token_info: Dict) -> str:  # caller is responsible for clo
         if userdata.refresh_token != refresh_token:
             userdata.refresh_token = refresh_token
             retstring += f'<h2>{user["display_name"]}\'s access token has been updated</h2><br>'
-        db_curates: Generator[models.Playlist, None, None] = (pl for pl in userdata.playlists.values()
-                                                              if pl.candidate == True)
-        db_collabs: Generator[models.Playlist, None, None] = (pl for pl in userdata.playlists.values()
-                                                              if pl.candidate == False)
+        db_curates: List[models.Playlist] = [pl for pl in userdata.playlists.values()
+                                                              if pl.candidate == True]
+        db_collabs: List[models.Playlist] = [pl for pl in userdata.playlists.values()
+                                                              if pl.candidate == False]
         userdata, retstring = update_playlists(
             session, userdata, candidates, db_curates, True, retstring)
         userdata, retstring = update_playlists(
@@ -154,9 +154,9 @@ def gen_user(session, token_info: Dict) -> str:  # caller is responsible for clo
         session.add(new_user)
         session.commit()
         new_user, retstring = update_playlists(
-            session, new_user, candidates, iter([]), True, retstring)
+            session, new_user, candidates, [], True, retstring)
         new_user, retstring = update_playlists(
-            session, new_user, collabs, iter([]), False, retstring)
+            session, new_user, collabs, [], False, retstring)
         session.add(new_user)
         session.commit()
         return retstring + f'<h2>{user["display_name"]} has been created</h2>'
