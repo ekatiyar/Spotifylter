@@ -55,7 +55,7 @@ def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
         if in_saved and candidate:
             common.filter_out(
                 username, sp, playlist.playlist_id, cached_song, True)
-            common.update_song(username, cached_song, False)
+            # common.update_song(username, cached_song, False) # Don't update stats, just remove since it might be skipped since it's saved
         elif candidate:
             flagged = common.update_song(username, cached_song, True)
             if flagged:
