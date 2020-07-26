@@ -50,7 +50,8 @@ def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
         if cached_song.get('context') and cached_song['context']['type'] == 'playlist':
             playlist: Playlist = userinfo.playlists.get(common.parse_uri(
                 cached_song['context']["uri"]))
-            candidate = playlist.candidate
+            if playlist:
+                candidate = playlist.candidate
 
         if in_saved and candidate:
             common.filter_out(
