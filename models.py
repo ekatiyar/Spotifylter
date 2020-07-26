@@ -18,7 +18,7 @@ association_table = Table(
 class User(Base):
     __tablename__ = "user"
 
-    username = Column(String, primary_key=True)
+    username = Column(String(30), primary_key=True)
     email = Column(String)
     refresh_token = Column(String)
     last_updated = Column(Integer)
@@ -41,7 +41,7 @@ class User(Base):
 class Playlist(Base):
     __tablename__ = "playlist"
 
-    playlist_id = Column(String, primary_key=True)
+    playlist_id = Column(String(22), primary_key=True)
     owner = Column(String, ForeignKey("user.username", ondelete="CASCADE"))
     candidate = Column(Boolean)
     users = relationship(
@@ -56,10 +56,10 @@ class Count(Base):
     __tablename__ = "count"
 
     username = Column(
-        String, ForeignKey("user.username", ondelete="CASCADE"), primary_key=True
+        String(30), ForeignKey("user.username", ondelete="CASCADE"), primary_key=True
     )
     candidate = Column(Boolean, primary_key=True)
-    song = Column(String, primary_key=True)
+    song = Column(String(22), primary_key=True)
     song_count = Column(Integer)
     song_avg = Column(Float)
     song_duration = Column(Float)
