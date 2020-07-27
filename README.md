@@ -1,7 +1,25 @@
 # Spotifylter Curation Service
-Adds a level of automation to filtering songs in and out of Spotify Library
+Spotify Listening History driven reccomendation and analysis service.
 
-## Setup Instructions
+Sign up on [Spotifylter](https://spotifylter.herokuapp.com).
+
+## Current Features
+1. Spotifylter Playlist: Add songs you want to listen to and possibly add to your library. If you like the song, add it to your library. After 5 listens, the song is removed.
+
+2. Collaborative Playlist: Auto-add music you seem to like, and auto-remove music that the group likes the least.
+
+
+## Planned Features
+1. Spotifylter Playlist: Auto-add songs that aren't in your library but you seem to like
+
+2. Spotifylter Playlist: Auto-add new albums from your favorite artists
+
+3. Data Dashboard: Provide analytics about your favorite and least favorite music in your library, so you can clear our stale music
+
+
+## Personal Setup Instructions
+If you're interested in running the app yourself, here are instructions for getting it set up:
+
 1. Follow the instructions [here](https://developer.spotify.com/documentation/web-api/quick-start/) to set up your account and create your application
 <img src="https://raw.githubusercontent.com/ekatiyar/Spotifylter/master/images/app_create.PNG" alt="Image of App Creation" width="300"/>
 
