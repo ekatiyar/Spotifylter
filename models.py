@@ -1,5 +1,5 @@
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Table, Column, Integer, String, Float, Boolean, ForeignKey
+from sqlalchemy import Table, Column, Integer, String, Float, Boolean, ForeignKey, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm.collections import attribute_mapped_collection
 
@@ -8,10 +8,8 @@ Base = declarative_base()
 association_table = Table(
     "association",
     Base.metadata,
-    Column("username", String, ForeignKey("user.username", ondelete="CASCADE")),
-    Column(
-        "playlist_id", String, ForeignKey("playlist.playlist_id", ondelete="CASCADE")
-    ),
+    Column("username", Text, ForeignKey("user.username", ondelete="CASCADE")),
+    Column("playlist_id", Text, ForeignKey("playlist.playlist_id", ondelete="CASCADE")),
 )
 
 
@@ -19,8 +17,8 @@ class User(Base):
     __tablename__ = "user"
 
     username = Column(String(30), primary_key=True)
-    email = Column(String)
-    refresh_token = Column(String)
+    email = Column(Text)
+    refresh_token = Column(Text)
     last_updated = Column(Integer)
     playlists = relationship(
         "Playlist",
@@ -42,7 +40,7 @@ class Playlist(Base):
     __tablename__ = "playlist"
 
     playlist_id = Column(String(22), primary_key=True)
-    owner = Column(String, ForeignKey("user.username", ondelete="CASCADE"))
+    owner = Column(Text, ForeignKey("user.username", ondelete="CASCADE"))
     candidate = Column(Boolean)
     users = relationship(
         "User",
