@@ -41,6 +41,8 @@ def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
         if (
             not "item" in cached_song
             or not "item" in results
+            or not "id" in results["item"]
+            or not "id" in cached_song["item"]
             or results["item"]["id"] == cached_song["item"]["id"]
         ):
             cached_song = results
