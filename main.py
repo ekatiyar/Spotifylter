@@ -38,16 +38,22 @@ def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
             return
 
         # if no difference or item unavailable, update cache and sleep
-        if (
-            not "item" in cached_song
-            or not "item" in results
-            or not "id" in results["item"]
-            or not "id" in cached_song["item"]
-            or results["item"]["id"] == cached_song["item"]["id"]
-        ):
-            cached_song = results
-            sleep(active_wait)
-            continue
+        try:
+            if (
+                not "item" in cached_song
+                or not "item" in results
+                or not "id" in results["item"]
+                or not "id" in cached_song["item"]
+                or results["item"]["id"] == cached_song["item"]["id"]
+            ):
+                cached_song = results
+                sleep(active_wait)
+                continue
+        except TypeError as e:
+            print(f"cached song: {cached_song}")
+            print(f"results: {results}")
+            print(e)
+            return
 
         # Store cached song to db so we can update
         song_id = cached_song["item"]["id"]
