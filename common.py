@@ -18,7 +18,7 @@ scopes_list = [
     "user-library-read",
 ]
 max_plays = 5
-max_users = 10
+max_users = 100
 
 
 class UserThread:
