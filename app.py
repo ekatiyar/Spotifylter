@@ -65,7 +65,7 @@ def playlists():
     return (
         f"{common.gen_user(Scoped_Session, token_info)}"
         f'<a href="/">[HOME]<a/>'
-        f"hosted_by"
+        f"{hosted_by}"
     )
 
 
