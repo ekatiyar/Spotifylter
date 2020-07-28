@@ -3,7 +3,7 @@ Spotify Listening History driven reccomendation and analysis service. Not only d
 
 I wanted to build this because I found myself skipping songs so often, and I wanted to inform this process with automation and data analysis.
 
-Sign up for the service on [Spotifylter](https://spotifylter.herokuapp.com). Currently the service is in an pre-alpha state.
+Sign up for the service on [Spotifylter](https://eashman.apphost.ocf.berkeley.edu/). Currently the service is in an pre-alpha state.
 
 ## Current Features
 1. Spotifylter Playlist: Add songs to this playlist that you want to listen to and possibly add to your library. If you like the song, add it to your library. After 5 listens, the song is removed from the playlist. Listening history in this playlist is sandboxed from the rest of your listening history.

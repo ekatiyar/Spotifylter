@@ -11,6 +11,11 @@ app.config["SESSION_TYPE"] = "filesystem"
 
 Session(app)
 
+hosted_by = '<br><a href="https://www.ocf.berkeley.edu"> \
+    <img src="https://www.ocf.berkeley.edu/hosting-logos/ocf-hosted-penguin.svg" \
+        alt="Hosted by the OCF" style="border: 0;" /> \
+</a>'
+
 
 @app.route("/")
 def index():
@@ -30,7 +35,7 @@ def index():
 
     if not session.get("token_info"):
         auth_url = auth_manager.get_authorize_url()
-        return f'<h2><a href="{auth_url}">Sign in</a></h2>'
+        return f'<h2><a href="{auth_url}">Sign in</a></h2>' f"{hosted_by}"
 
     session["token_info"] = common.check_refresh(
         auth_manager, session.get("token_info")
@@ -42,6 +47,7 @@ def index():
         f'<small><a href="/sign_out">[sign out]<a/></small></h2>'
         f'<a href="/setup">Create/Update Spotifylter Account</a>'
         f'<br><a href="/remove">Delete Account</a>'
+        f"{hosted_by}"
     )
 
 
@@ -56,7 +62,11 @@ def playlists():
     token_info = session.get("token_info")
     if not token_info:
         return redirect("/")
-    return common.gen_user(Scoped_Session, token_info) + f'<a href="/">[HOME]<a/>'
+    return (
+        f"{common.gen_user(Scoped_Session, token_info)}"
+        f'<a href="/">[HOME]<a/>'
+        f"{hosted_by}"
+    )
 
 
 @app.route("/remove")
@@ -69,11 +79,13 @@ def remove_user():
         return (
             f"<h2>Deletion Successful, {res} Accounts Deleted</h2>"
             f'<a href="/">[HOME]<a/>'
+            f"{hosted_by}"
         )
     else:
         return (
             f"<h2>Deletion Failed, {res} Accounts Matched</h2>"
             f'<a href="/">[HOME]<a/>'
+            f"{hosted_by}"
         )
 
 
