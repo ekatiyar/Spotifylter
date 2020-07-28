@@ -1,24 +1,30 @@
 # Spotifylter Curation Service
-Spotify Listening History driven reccomendation and analysis service.
+Spotify Listening History driven reccomendation and analysis service. Not only does it figure out what music you like (which others already do), it additionally figures out what music you don't like, maintaining library and playlist quality.
 
-Sign up on [Spotifylter](https://spotifylter.herokuapp.com).
+I wanted to build this because I found myself skipping songs so often, and I wanted to inform this process with automation and data analysis.
+
+Sign up for the service on [Spotifylter](https://spotifylter.herokuapp.com). Currently the service is in an pre-alpha state.
 
 ## Current Features
-1. Spotifylter Playlist: Add songs you want to listen to and possibly add to your library. If you like the song, add it to your library. After 5 listens, the song is removed.
+1. Spotifylter Playlist: Add songs to this playlist that you want to listen to and possibly add to your library. If you like the song, add it to your library. After 5 listens, the song is removed from the playlist. Listening history in this playlist is sandboxed from the rest of your listening history.
 
-2. Collaborative Playlist: Auto-add music you seem to like, and auto-remove music that the group likes the least.
+2. Collaborative Playlist: Auto-add music each member seem to like, and auto-remove music that the group likes the least on a twice-monthly basis.
 
 
 ## Planned Features
-1. Spotifylter Playlist: Auto-add songs that aren't in your library but you seem to like
+THe following is not an exhaustive list:
 
-2. Spotifylter Playlist: Auto-add new albums from your favorite artists
+1. Spotifylter Playlist: Auto-add songs to playlist that aren't in your library but you seem to like
 
-3. Data Dashboard: Provide analytics about your favorite and least favorite music in your library, so you can clear our stale music
+2. Spotifylter Playlist: Auto-add new albums from your favorite artists to the playlist
+
+3. Spotifylter Playlist: Currently Spotifylter Playlist is empty on service registration. Add some songs to the playlist to get the user familiar with the service.
+
+4. Data Dashboard: Provide analytics about your favorite and least favorite music in your library, so you can clear our stale music
 
 
 ## Personal Setup Instructions
-If you're interested in running the app yourself, here are instructions for getting it set up:
+If you're interested in running the app yourself, here are instructions for getting it set up on heroku:
 
 1. Follow the instructions [here](https://developer.spotify.com/documentation/web-api/quick-start/) to set up your account and create your application
 <img src="https://raw.githubusercontent.com/ekatiyar/Spotifylter/master/images/app_create.PNG" alt="Image of App Creation" width="300"/>
