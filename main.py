@@ -37,9 +37,10 @@ def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
             print(f"Spinning down thread for {username}")
             return
 
-        if results.get("item", None) == None { # Playing something without an item (an ad?), just continue
+        # Playing something without an item (an ad?), just continue
+        if results.get("item", None) == None:
             continue
-        }
+
         # if no difference or item unavailable, update cache and sleep
         try:
             if (
