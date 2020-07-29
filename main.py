@@ -30,20 +30,20 @@ def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
             sp.set_auth(new_token["access_token"])
             token_info = new_token
 
-        results = sp.currently_playing()
+        results: dict = sp.currently_playing()
 
         # If null (no devices using spotify) or not playing, deactivate thread
         if not results or not results["is_playing"]:
             print(f"Spinning down thread for {username}")
             return
 
+        if results.get("item", None) == None { # Playing something without an item (an ad?), just continue
+            continue
+        }
         # if no difference or item unavailable, update cache and sleep
         try:
             if (
-                not "item" in cached_song
-                or not "item" in results
-                or not "id" in results["item"]
-                or not "id" in cached_song["item"]
+                cached_song.get("item", None) == None
                 or results["item"]["id"] == cached_song["item"]["id"]
             ):
                 cached_song = results
