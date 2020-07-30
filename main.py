@@ -1,35 +1,27 @@
 import spotipy
-from os import getenv
 from time import sleep
 from typing import Dict
 import threading
 
 import common
+from common import auth_manager
 from models import User, Playlist
 from db import Session_Factory
 
 # Global variables
-auth_manager = spotipy.oauth2.SpotifyOAuth(
-    scope=" ".join(common.scopes_list), cache_path=".tokens"
-)
-active_wait = 1
-inactive_wait = 60
+threads: Dict[str, common.UserThread] = dict()
+active_wait = 0.01  # 1% of current song duration
+inactive_wait = 90  # 1/2 of average song length
 
 
 # This function monitors user listening history
-def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
+def listeningd(userinfo: User) -> None:
 
     cached_song: Dict = dict()
     username = userinfo.username
 
     while True:
-
-        # Refresh token if needed:
-        new_token = common.check_refresh(auth_manager, token_info)
-        if token_info["access_token"] != new_token["access_token"]:
-            sp.set_auth(new_token["access_token"])
-            token_info = new_token
-
+        sp = threads[username].sp
         results: dict = sp.currently_playing()
 
         # If null (no devices using spotify) or not playing, deactivate thread
@@ -48,7 +40,8 @@ def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
                 or results["item"]["id"] == cached_song["item"]["id"]
             ):
                 cached_song = results
-                sleep(active_wait)
+                wait_time = (results["item"]["duration_ms"] / 1000) * active_wait
+                sleep(wait_time)
                 continue
         except TypeError as e:
             print(f"cached song: {cached_song}")
@@ -81,35 +74,36 @@ def listeningd(sp: spotipy.Spotify, userinfo: User, token_info: dict) -> None:
             common.update_song(username, cached_song, False)
 
         cached_song = results  # NOTE: This must be the last line of the for loop
-        sleep(active_wait)
+        wait_time = (results["item"]["duration_ms"] / 1000) * active_wait
+        sleep(wait_time)
 
 
 def service_manager():
     s = Session_Factory()
-    threads: Dict[str, common.UserThread] = dict()
     while True:
         for user in s.query(User).all():
             try:
-                if user.username in threads and threads[user.username].is_alive():
-                    continue
-                elif user.username in threads:
-                    token_info = common.check_refresh(
-                        auth_manager, threads[user.username].token_info
-                    )
+                if user.username in threads:
+                    # Refresh token if needed:
+                    prev_token = threads[user.username].token_info
+                    new_token = common.check_refresh(auth_manager, prev_token)
+                    if prev_token["access_token"] != new_token["access_token"]:
+                        threads[user.username].update_token(new_token)
+                    if threads[user.username].is_alive():
+                        continue
                 else:
                     token_info = common.get_token(auth_manager, user.refresh_token)
+                    threads[user.username] = common.UserThread(None, token_info)
             except spotipy.exceptions.SpotifyException as e:
                 print(f"Failed to get token for {user.username}: {e}")
                 continue
 
-            sp = common.gen_spotify(token_info)
+            sp = threads[user.username].sp
             results = sp.currently_playing()
             if results and results["is_playing"]:
                 print(f"Spinning up thread for {user.username}")
-                thread = threading.Thread(
-                    target=listeningd, args=(sp, user, token_info), daemon=True
-                )
-                threads[user.username] = common.UserThread(thread, token_info)
+                thread = threading.Thread(target=listeningd, args=(user,), daemon=True)
+                threads[user.username].thread = thread
                 thread.start()
         sleep(inactive_wait)
 

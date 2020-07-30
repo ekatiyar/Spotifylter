@@ -1,9 +1,7 @@
-import os
 import spotipy
 from typing import List, Dict, Tuple
-from time import time
 import models
-import db
+from db import Session_Factory
 from threading import Thread
 
 # Global Variables
@@ -17,17 +15,25 @@ scopes_list = [
     "playlist-modify-private",
     "user-library-read",
 ]
+auth_manager = spotipy.oauth2.SpotifyOAuth(
+    scope=" ".join(scopes_list), cache_path=".tokens"
+)
 max_plays = 5
 max_users = 100
 
 
 class UserThread:
-    def __init__(self, thread: Thread, token_info: dict):
+    def __init__(self, thread: Thread, token_info: Dict):
         self.thread = thread
         self.token_info = token_info
+        self.sp: spotipy.Spotify = gen_spotify(self.token_info)
 
     def is_alive(self) -> bool:
         return self.thread.is_alive()
+
+    def update_token(self, new_token: Dict) -> None:
+        self.token_info = new_token
+        self.sp.set_auth(self.token_info["access_token"])
 
 
 def get_token(auth_manager: spotipy.oauth2.SpotifyOAuth, refresh_token: str) -> dict:
@@ -44,18 +50,9 @@ def check_refresh(auth_manager: spotipy.oauth2.SpotifyOAuth, token: dict) -> dic
 
 
 def gen_spotify(token_info: dict) -> spotipy.Spotify:
-    auth_manager = spotipy.oauth2.SpotifyOAuth(
-        scope=" ".join(scopes_list), cache_path=".tokens"
-    )
     token_info = check_refresh(auth_manager, token_info)
     spotify = spotipy.Spotify(auth=token_info["access_token"])
     return spotify
-
-
-def get_env(key: str) -> str:
-    val = os.getenv(key)
-    assert val != None
-    return str(val)
 
 
 def parse_uri(uri: str) -> str:
@@ -188,10 +185,7 @@ def gen_user(
     if current_users < max_users:
         retstring = ""
         new_user = models.User(
-            username=username,
-            email=email,
-            refresh_token=refresh_token,
-            last_updated=int(time()),
+            username=username, email=email, refresh_token=refresh_token, last_updated=0,
         )
         session.add(new_user)
         session.commit()
@@ -223,7 +217,7 @@ def update_song(username: str, song: dict, candidate: bool) -> bool:
     song_id = song["item"]["id"]
     progress = song["progress_ms"] / 1000
     duration = song["item"]["duration_ms"] / 1000
-    s = db.Session_Factory()
+    s = Session_Factory()
     counts: models.Count = s.query(models.Count).filter_by(
         username=username, song=song_id, candidate=candidate
     ).first()
@@ -252,7 +246,7 @@ def filter_out(
 ):
     song_id = song["item"]["id"]
     sp.user_playlist_remove_all_occurrences_of_tracks(username, playlist_id, [song_id])
-    s = db.Session_Factory()
+    s = Session_Factory()
     count_row: models.Count = s.query(models.Count).filter_by(
         username=username, song=song_id, candidate=True
     ).first()
