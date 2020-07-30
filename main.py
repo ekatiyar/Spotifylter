@@ -107,6 +107,7 @@ def service_manager():
                 continue
 
             sp = common.gen_spotify(threads[user.username].token_info)
+            common.check_user(sp, s, user)
             results = sp.currently_playing()
             if results and results["is_playing"]:
                 print(f"Spinning up thread for {user.username}")
