@@ -90,9 +90,10 @@ def service_manager():
             try:
                 if user.username in threads:
                     # Refresh token if needed:
-                    prev_token = threads[user.username].token_info
-                    new_token = common.check_refresh(auth_manager, prev_token)
-                    if prev_token["access_token"] != new_token["access_token"]:
+                    new_token, mod = common.check_refresh(
+                        auth_manager, threads[user.username].token_info
+                    )
+                    if mod:
                         threads[user.username].update_token(new_token)
                     if (
                         threads[user.username].thread
