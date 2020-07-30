@@ -24,7 +24,7 @@ def listeningd(userinfo: User, sp=spotipy.Spotify, token_info=dict) -> None:
     while True:
         token_info, mod = common.check_refresh(auth_manager, token_info)
         if mod:
-            sp = sp.set_auth(token_info["access_token"])
+            sp.set_auth(token_info["access_token"])
         results: dict = sp.currently_playing()
 
         # If null (no devices using spotify) or not playing, deactivate thread
