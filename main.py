@@ -40,7 +40,8 @@ def listeningd(userinfo: User) -> None:
                 or results["item"]["id"] == cached_song["item"]["id"]
             ):
                 cached_song = results
-                sleep(active_wait)
+                wait_time = (results["item"]["duration_ms"] / 1000) * active_wait
+                sleep(wait_time)
                 continue
         except TypeError as e:
             print(f"cached song: {cached_song}")
