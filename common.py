@@ -15,9 +15,6 @@ scopes_list = [
     "playlist-modify-private",
     "user-library-read",
 ]
-auth_manager = spotipy.oauth2.SpotifyOAuth(
-    scope=" ".join(scopes_list), cache_path=".tokens"
-)
 max_plays = 5
 max_users = 100
 
@@ -52,6 +49,9 @@ def check_refresh(
 
 
 def gen_spotify(token_info: dict) -> spotipy.Spotify:
+    auth_manager = spotipy.oauth2.SpotifyOAuth(
+        scope=" ".join(scopes_list), cache_path=".tokens"
+    )
     token_info, mod = check_refresh(auth_manager, token_info)
     spotify = spotipy.Spotify(auth=token_info["access_token"])
     return spotify

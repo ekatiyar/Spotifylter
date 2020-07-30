@@ -4,11 +4,13 @@ from typing import Dict
 import threading
 
 import common
-from common import auth_manager
 from models import User, Playlist
 from db import Session_Factory
 
 # Global variables
+auth_manager = spotipy.oauth2.SpotifyOAuth(
+    scope=" ".join(common.scopes_list), cache_path=".tokens"
+)
 active_wait = 0.01  # 1% of current song duration
 inactive_wait = 90  # 1/2 of average song length
 
@@ -22,7 +24,7 @@ def listeningd(userinfo: User, sp=spotipy.Spotify, token_info=dict) -> None:
     while True:
         token_info, mod = common.check_refresh(auth_manager, token_info)
         if mod:
-            sp = common.gen_spotify(token_info)
+            sp = sp.set_auth(token_info["access_token"])
         results: dict = sp.currently_playing()
 
         # If null (no devices using spotify) or not playing, deactivate thread
@@ -87,11 +89,11 @@ def service_manager():
             try:
                 if user.username in threads:
                     # Refresh token if needed:
-                    new_token, mod = common.check_refresh(
+                    token_info, mod = common.check_refresh(
                         auth_manager, threads[user.username].token_info
                     )
                     if mod:
-                        threads[user.username].update_token(new_token)
+                        threads[user.username].update_token(token_info)
                     if (
                         threads[user.username].thread
                         and threads[user.username].is_alive()
