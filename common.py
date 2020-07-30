@@ -41,16 +41,18 @@ def get_token(auth_manager: spotipy.oauth2.SpotifyOAuth, refresh_token: str) -> 
     return token
 
 
-def check_refresh(auth_manager: spotipy.oauth2.SpotifyOAuth, token: dict) -> dict:
+def check_refresh(
+    auth_manager: spotipy.oauth2.SpotifyOAuth, token: dict
+) -> Tuple[Dict, bool]:
     assert token["access_token"]
     if auth_manager.is_token_expired(token):
-        return get_token(auth_manager, token["refresh_token"])
+        return get_token(auth_manager, token["refresh_token"]), True
     else:
-        return token
+        return token, False
 
 
 def gen_spotify(token_info: dict) -> spotipy.Spotify:
-    token_info = check_refresh(auth_manager, token_info)
+    token_info, mod = check_refresh(auth_manager, token_info)
     spotify = spotipy.Spotify(auth=token_info["access_token"])
     return spotify
 

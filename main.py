@@ -21,6 +21,11 @@ def listeningd(userinfo: User) -> None:
     username = userinfo.username
 
     while True:
+        new_token, mod = common.check_refresh(
+            auth_manager, threads[username].token_info
+        )
+        if mod:
+            threads[username].update_token(new_token)
         sp = threads[username].sp
         results: dict = sp.currently_playing()
 

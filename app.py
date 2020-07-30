@@ -37,7 +37,7 @@ def index():
         auth_url = auth_manager.get_authorize_url()
         return f'<h2><a href="{auth_url}">Sign in</a></h2>' f"{hosted_by}"
 
-    session["token_info"] = common.check_refresh(
+    session["token_info"], mod = common.check_refresh(
         auth_manager, session.get("token_info")
     )
 
