@@ -101,7 +101,7 @@ def service_manager():
             results = sp.currently_playing()
             if results and results["is_playing"]:
                 print(f"Spinning up thread for {user.username}")
-                thread = threading.Thread(target=listeningd, args=(user), daemon=True)
+                thread = threading.Thread(target=listeningd, args=(user,), daemon=True)
                 threads[user.username].thread = thread
                 thread.start()
         sleep(inactive_wait)
