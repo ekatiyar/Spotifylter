@@ -9,24 +9,20 @@ from models import User, Playlist
 from db import Session_Factory
 
 # Global variables
-threads: Dict[str, common.UserThread] = dict()
 active_wait = 0.01  # 1% of current song duration
 inactive_wait = 90  # 1/2 of average song length
 
 
 # This function monitors user listening history
-def listeningd(userinfo: User) -> None:
+def listeningd(userinfo: User, sp=spotipy.Spotify, token_info=dict) -> None:
 
     cached_song: Dict = dict()
     username = userinfo.username
 
     while True:
-        new_token, mod = common.check_refresh(
-            auth_manager, threads[username].token_info
-        )
+        token_info, mod = common.check_refresh(auth_manager, token_info)
         if mod:
-            threads[username].update_token(new_token)
-        sp = threads[username].sp
+            sp = common.gen_spotify(token_info)
         results: dict = sp.currently_playing()
 
         # If null (no devices using spotify) or not playing, deactivate thread
@@ -85,6 +81,7 @@ def listeningd(userinfo: User) -> None:
 
 def service_manager():
     s = Session_Factory()
+    threads: Dict[str, common.UserThread] = dict()
     while True:
         for user in s.query(User).all():
             try:
@@ -107,11 +104,15 @@ def service_manager():
                 print(f"Failed to get token for {user.username}: {e}")
                 continue
 
-            sp = threads[user.username].sp
+            sp = common.gen_spotify(threads[user.username].token_info)
             results = sp.currently_playing()
             if results and results["is_playing"]:
                 print(f"Spinning up thread for {user.username}")
-                thread = threading.Thread(target=listeningd, args=(user,), daemon=True)
+                thread = threading.Thread(
+                    target=listeningd,
+                    args=(user, sp, threads[user.username].token_info),
+                    daemon=True,
+                )
                 threads[user.username].thread = thread
                 thread.start()
         sleep(inactive_wait)

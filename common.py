@@ -26,14 +26,14 @@ class UserThread:
     def __init__(self, thread: Thread, token_info: Dict):
         self.thread = thread
         self.token_info = token_info
-        self.sp: spotipy.Spotify = gen_spotify(self.token_info)
+        # self.sp: spotipy.Spotify = gen_spotify(self.token_info)
 
     def is_alive(self) -> bool:
         return self.thread.is_alive()
 
     def update_token(self, new_token: Dict) -> None:
         self.token_info = new_token
-        self.sp.set_auth(self.token_info["access_token"])
+        # self.sp.set_auth(self.token_info["access_token"])
 
 
 def get_token(auth_manager: spotipy.oauth2.SpotifyOAuth, refresh_token: str) -> dict:
