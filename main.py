@@ -89,7 +89,7 @@ def service_manager():
                     new_token = common.check_refresh(auth_manager, prev_token)
                     if prev_token["access_token"] != new_token["access_token"]:
                         threads[user.username].update_token(new_token)
-                    if threads[user.username].is_alive():
+                    if threads[user.username] and threads[user.username].is_alive():
                         continue
                 else:
                     token_info = common.get_token(auth_manager, user.refresh_token)
