@@ -17,7 +17,7 @@ scopes_list = [
     "user-library-read",
     "user-read-recently-played",
 ]
-max_plays = 5
+max_plays = 3
 max_users = 100
 update_interval = 1209600  # Number of seconds to wait (2 wks)
 
