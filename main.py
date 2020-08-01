@@ -22,10 +22,14 @@ def listeningd(userinfo: User, sp=spotipy.Spotify, token_info=dict) -> None:
     username = userinfo.username
 
     while True:
-        token_info, mod = common.check_refresh(auth_manager, token_info)
-        if mod:
-            sp.set_auth(token_info["access_token"])
-        results: dict = sp.currently_playing()
+        try:
+            results: dict = sp.currently_playing()
+        except Exception as e:
+            print(e)
+            token_info, mod = common.check_refresh(auth_manager, token_info)
+            if mod:
+                sp.set_auth(token_info["access_token"])
+            results = sp.currently_playing()
 
         # If null (no devices using spotify) or not playing, deactivate thread
         if not results or not results["is_playing"]:
@@ -107,6 +111,7 @@ def service_manager():
                 continue
 
             sp = common.gen_spotify(threads[user.username].token_info)
+            common.check_user(sp, s, user)
             results = sp.currently_playing()
             if results and results["is_playing"]:
                 print(f"Spinning up thread for {user.username}")
