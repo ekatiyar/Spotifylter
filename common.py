@@ -256,8 +256,8 @@ def filter_out(
         username=username, song=song_id, candidate=True
     ).first()
     if count_row:
-        s.delete(count_row)
         if preserve:  # merge
+            s.delete(count_row)
             new_data: models.Count = s.query(models.Count).filter_by(
                 username=username, song=song_id, candidate=False
             ).first()
@@ -268,12 +268,13 @@ def filter_out(
                     (prev_count * new_data.song_avg)
                     + (count_row.song_count * count_row.song_avg)
                 ) / new_data.song_count
-                count_row.filtered = True
                 s.add(new_data)
             else:
                 count_row.candidate = False
-                count_row.filtered = True
                 s.add(count_row)
+        else:
+            count_row.filtered = True
+            s.add(count_row)
         s.commit()
     s.close()
 
