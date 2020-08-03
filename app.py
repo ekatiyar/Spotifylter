@@ -46,6 +46,7 @@ def index():
         f'<h2>Hi {spotify.me()["display_name"]}, '
         f'<small><a href="/sign_out">[sign out]<a/></small></h2>'
         f'<a href="/setup">Create/Update Spotifylter Account</a>'
+        f'<br><a href="/filtered">Filtered Out Songs</a>'
         f'<br><a href="/remove">Delete Account</a>'
         f"{hosted_by}"
     )
@@ -64,6 +65,18 @@ def playlists():
         return redirect("/")
     return (
         f"{common.gen_user(Scoped_Session, token_info)}"
+        f'<a href="/">[HOME]<a/>'
+        f"{hosted_by}"
+    )
+
+
+@app.route("/filtered")
+def filtered():
+    token_info = session.get("token_info")
+    if not token_info:
+        return redirect("/")
+    return (
+        f"{common.get_filtered(Scoped_Session, token_info)}"
         f'<a href="/">[HOME]<a/>'
         f"{hosted_by}"
     )

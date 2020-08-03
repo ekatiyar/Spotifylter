@@ -332,3 +332,21 @@ def check_user(sp: spotipy.Spotify, session, user: models.User):
         )  # initial populate since we don't have any data
     elif time() - user.last_updated > update_interval:
         pass
+
+
+def get_filtered(s, token_info) -> str:
+    spotify = gen_spotify(token_info)
+    user = spotify.me()
+    username = user["id"]
+    songs: List[models.Count] = (
+        s.query(models.Count)
+        .filter_by(username=username, candidate=True, filtered=True)
+        .all()
+    )
+    if not songs:
+        return "<h2>No Filtered Songs Available</h2>"
+    template = '<iframe src="https://open.spotify.com/embed/track/{track_id}" width="300" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>'
+    ret = ""
+    for song in songs:
+        ret += template.format(track_id=song.song)
+    return ret + "<br>"
