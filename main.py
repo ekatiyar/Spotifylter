@@ -25,6 +25,7 @@ def listeningd(userinfo: User, sp=spotipy.Spotify, token_info=dict) -> None:
         try:
             results: dict = sp.currently_playing()
         except Exception as e:
+            print("Error type: ", str(type(e)))
             print(e)
             token_info, mod = common.check_refresh(auth_manager, token_info)
             if mod:

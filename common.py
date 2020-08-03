@@ -282,7 +282,7 @@ def update_avg(prev_count: int, progress: float, avg_progress: float) -> float:
     return (avg_progress * prev_count + progress) / (prev_count + 1)
 
 
-def get_candidate_songs(sp: spotipy.Spotify, playlist_id: str) -> List[str]:
+def get_song_ids(sp: spotipy.Spotify, playlist_id: str) -> List[str]:
     playlist = sp.playlist_tracks(playlist_id, fields="items(track(id)), next")
     ret = []
     cond = True
@@ -295,24 +295,26 @@ def get_candidate_songs(sp: spotipy.Spotify, playlist_id: str) -> List[str]:
     return ret
 
 
-# caller is responsible for closing session
-def populate_user(sp: spotipy.Spotify, s, user: models.User) -> int:
-    candidate: models.Playlist = s.query(models.Playlist).filter_by(
-        owner=user.username, candidate=True
-    ).first()
-    pre_ids = get_candidate_songs(sp, candidate.playlist_id)
-    if pre_ids:
-        user.last_updated = int(time())
-        s.add(user)
-        s.commit()
-        return 0
+def get_recently_played(sp: spotipy.Spotify) -> List[str]:
     recently_played = sp.current_user_recently_played()
     songs_set: Set[str] = set()
     songs_set.update([item["track"]["id"] for item in recently_played["items"]])
-    song_ids: List[str] = list(songs_set)
+    return list(songs_set)
+
+
+# caller is responsible for closing session
+def populate_user(
+    sp: spotipy.Spotify, s, user: models.User, song_ids: List[str]
+) -> int:
+    candidate: models.Playlist = s.query(models.Playlist).filter_by(
+        owner=user.username, candidate=True
+    ).first()
+    pre_ids = set(get_song_ids(sp, candidate.playlist_id))
     in_saveds = sp.current_user_saved_tracks_contains(song_ids)
     res: List[str] = [
-        song_ids[i] for i, in_saved in enumerate(in_saveds) if not in_saved
+        song_ids[i]
+        for i, in_saved in enumerate(in_saveds)
+        if not in_saved and song_ids[i] not in pre_ids
     ]
     if res:
         sp.user_playlist_add_tracks(user.username, candidate.playlist_id, res)
@@ -324,6 +326,8 @@ def populate_user(sp: spotipy.Spotify, s, user: models.User) -> int:
 
 def check_user(sp: spotipy.Spotify, session, user: models.User):
     if user.last_updated == 0:
-        populate_user(sp, session, user)
+        populate_user(
+            sp, session, user, get_recently_played(sp)
+        )  # initial populate since we don't have any data
     elif time() - user.last_updated > update_interval:
         pass
