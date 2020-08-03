@@ -87,9 +87,9 @@ def listeningd(userinfo: User, sp=spotipy.Spotify, token_info=dict) -> None:
 
 
 def service_manager():
-    s = Session_Factory()
     threads: Dict[str, common.UserThread] = dict()
     while True:
+        s = Session_Factory()
         for user in s.query(User).all():
             try:
                 if user.username in threads:
@@ -123,9 +123,8 @@ def service_manager():
                 )
                 threads[user.username].thread = thread
                 thread.start()
+        s.close()
         sleep(inactive_wait)
-
-    s.close()  # TODO: Implement signal handling
 
 
 if __name__ == "__main__":
