@@ -24,13 +24,15 @@ def listeningd(userinfo: User, sp=spotipy.Spotify, token_info=dict) -> None:
     while True:
         try:
             results: dict = sp.currently_playing()
-        except Exception as e:
-            print("Error type: ", str(type(e)))
+        except spotipy.exceptions.SpotifyException as e:
             print(e)
             token_info, mod = common.check_refresh(auth_manager, token_info)
+            print("refreshed")
             if mod:
                 sp.set_auth(token_info["access_token"])
+            print("reset auth")
             results = sp.currently_playing()
+            print("Results: ", results)
 
         # If null (no devices using spotify) or not playing, deactivate thread
         if not results or not results["is_playing"]:
