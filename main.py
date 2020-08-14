@@ -69,7 +69,6 @@ def listeningd(userinfo: User, sp=spotipy.Spotify, token_info=dict) -> None:
 
         if in_saved and candidate:
             common.filter_out(username, sp, playlist.playlist_id, cached_song, True)
-            # common.update_song(username, cached_song, False) # Don't update stats, just remove since it might be skipped since it's saved
         elif candidate:
             flagged = common.update_song(username, cached_song, True)
             if flagged:
@@ -121,6 +120,7 @@ def service_manager():
                 )
                 threads[user.username].thread = thread
                 thread.start()
+        s.commit()
         sleep(inactive_wait)
     s.close()  # TODO: fix this properly. Need to read into session management
 
