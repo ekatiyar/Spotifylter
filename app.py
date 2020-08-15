@@ -1,5 +1,5 @@
 from os import urandom, remove
-from flask import Flask, session, request, redirect
+from flask import Flask, session, request, redirect, url_for
 from flask_session import Session
 import spotipy
 from db import Scoped_Session
@@ -46,6 +46,7 @@ def index():
         f'<h2>Hi {spotify.me()["display_name"]}, '
         f'<small><a href="/sign_out">[sign out]<a/></small></h2>'
         f'<a href="/setup">Create/Update Spotifylter Account</a>'
+        f'<br><a href="/top">My Top Songs</a>'
         f'<br><a href="/filtered">Filtered Out Songs</a>'
         f'<br><a href="/remove">Delete Account</a>'
         f"{hosted_by}"
@@ -70,16 +71,52 @@ def playlists():
     )
 
 
+template = '<iframe src="https://open.spotify.com/embed/track/{track_id}" width="300" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>'
+
+
 @app.route("/filtered")
 def filtered():
     token_info = session.get("token_info")
     if not token_info:
         return redirect("/")
-    return (
-        f"{common.get_filtered(Scoped_Session, token_info)}"
-        f'<a href="/">[HOME]<a/>'
-        f"{hosted_by}"
-    )
+
+    songs = common.get_filtered(Scoped_Session, token_info)
+
+    if not songs:
+        return "<h2>No Filtered Songs Available</h2>"
+    ret = ""
+    for song in songs:
+        ret += template.format(track_id=song.song)
+        ret += f'<p>Song Score: {song.song_count * (song.song_avg/song.song_duration) : .2f} | <a href="{url_for("remove_song", song_id = song.song)}">Delete Song</a></p>'
+
+    return f"{ret}" f'<br><a href="/">[HOME]<a/>' f"{hosted_by}"
+
+
+@app.route("/remove_song/<string:song_id>")
+def remove_song(song_id):
+    token_info = session.get("token_info")
+    if not token_info:
+        return redirect("/")
+    common.remove_song(Scoped_Session, token_info, song_id)
+    return redirect("/filtered")
+
+
+@app.route("/top")
+def top_songs():
+    token_info = session.get("token_info")
+    if not token_info:
+        return redirect("/")
+
+    top_songs = common.get_top_songs(Scoped_Session, token_info)
+
+    if not top_songs:
+        return "<h>Top Songs Unavailable</h2>"
+    ret = ""
+    for song in top_songs:
+        ret += template.format(track_id=song.song)
+        ret += f"<p>Song Score: {song.song_count * (song.song_avg/song.song_duration) : .2f}</p>"
+
+    return f"{ret}" f'<br><a href="/">[HOME]<a/>' f"{hosted_by}"
 
 
 @app.route("/remove")

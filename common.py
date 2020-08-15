@@ -4,6 +4,7 @@ import models
 from db import Session_Factory
 from threading import Thread
 from time import time
+from sqlalchemy import cast, desc, asc, Float
 
 # Global Variables
 scopes_list = [
@@ -334,19 +335,49 @@ def check_user(sp: spotipy.Spotify, session, user: models.User):
         pass
 
 
-def get_filtered(s, token_info) -> str:
+def get_filtered(s, token_info) -> List[models.Count]:
     spotify = gen_spotify(token_info)
     user = spotify.me()
     username = user["id"]
     songs: List[models.Count] = (
         s.query(models.Count)
         .filter_by(username=username, candidate=True, filtered=True)
+        .order_by(
+            asc(
+                cast(models.Count.song_count, Float)
+                * (models.Count.song_avg / models.Count.song_duration)
+            )
+        )
         .all()
     )
-    if not songs:
-        return "<h2>No Filtered Songs Available</h2>"
-    template = '<iframe src="https://open.spotify.com/embed/track/{track_id}" width="300" height="80" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>'
-    ret = ""
-    for song in songs:
-        ret += template.format(track_id=song.song)
-    return ret + "<br>"
+    return songs
+
+
+def remove_song(s, token_info, song_id) -> int:
+    spotify = gen_spotify(token_info)
+    user = spotify.me()
+    username = user["id"]
+    res: int = s.query(models.Count).filter_by(
+        username=username, candidate=True, song=song_id
+    ).delete()
+    s.commit()
+    return res
+
+
+def get_top_songs(s, token_info) -> List[models.Count]:
+    spotify = gen_spotify(token_info)
+    user = spotify.me()
+    username = user["id"]
+    top_songs: List[models.Count] = (
+        s.query(models.Count)
+        .filter_by(username=username)
+        .order_by(
+            desc(
+                cast(models.Count.song_count, Float)
+                * (models.Count.song_avg / models.Count.song_duration)
+            )
+        )
+        .limit(10)
+        .all()
+    )
+    return top_songs
