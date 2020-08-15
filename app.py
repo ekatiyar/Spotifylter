@@ -82,12 +82,13 @@ def filtered():
 
     songs = common.get_filtered(Scoped_Session, token_info)
 
-    if not songs:
-        return "<h2>No Filtered Songs Available</h2>"
     ret = ""
-    for song in songs:
-        ret += template.format(track_id=song.song)
-        ret += f'<p>Song Score: {song.song_count * (song.song_avg/song.song_duration) : .2f} | <a href="{url_for("remove_song", song_id = song.song)}">Delete Song</a></p>'
+    if not songs:
+        ret = "<h2>No Filtered Songs Available</h2>"
+    else:
+        for song in songs:
+            ret += template.format(track_id=song.song)
+            ret += f'<p>Song Score: {song.song_count * (song.song_avg/song.song_duration) : .2f} | <a href="{url_for("remove_song", song_id = song.song)}">Delete Song</a></p>'
 
     return f"{ret}" f'<br><a href="/">[HOME]<a/>' f"{hosted_by}"
 
@@ -109,12 +110,13 @@ def top_songs():
 
     top_songs = common.get_top_songs(Scoped_Session, token_info)
 
-    if not top_songs:
-        return "<h>Top Songs Unavailable</h2>"
     ret = ""
-    for song in top_songs:
-        ret += template.format(track_id=song.song)
-        ret += f"<p>Song Score: {song.song_count * (song.song_avg/song.song_duration) : .2f}</p>"
+    if not top_songs:
+        ret = "<h>Top Songs Unavailable</h2>"
+    else:
+        for song in top_songs:
+            ret += template.format(track_id=song.song)
+            ret += f"<p>Song Score: {song.song_count * (song.song_avg/song.song_duration) : .2f}</p>"
 
     return f"{ret}" f'<br><a href="/">[HOME]<a/>' f"{hosted_by}"
 
