@@ -16,6 +16,7 @@ scopes_list = [
     "playlist-read-private",
     "playlist-modify-private",
     "user-library-read",
+    "user-library-modify",
     "user-read-recently-played",
 ]
 max_plays = 3
@@ -364,7 +365,23 @@ def remove_song(s, token_info, song_id) -> int:
     return res
 
 
-def get_top_songs(s, token_info) -> List[models.Count]:
+def readd_song(s, token_info, song_id):
+    spotify = gen_spotify(token_info)
+    user = spotify.me()
+    username = user["id"]
+    song: models.Count = s.query(models.Count).filter_by(
+        username=username, candidate=True, song=song_id
+    ).first()
+    song.filtered = False
+    playlist: models.Playlist = s.query(models.Playlist).filter_by(
+        owner=username, candidate=True
+    ).first()
+    spotify.user_playlist_add_tracks(username, playlist.playlist_id, [song_id])
+    s.add(song)
+    s.commit()
+
+
+def get_top_songs(s, token_info, num_songs) -> Tuple[List[models.Count], List[bool]]:
     spotify = gen_spotify(token_info)
     user = spotify.me()
     username = user["id"]
@@ -377,7 +394,18 @@ def get_top_songs(s, token_info) -> List[models.Count]:
                 * (models.Count.song_avg / models.Count.song_duration)
             )
         )
-        .limit(10)
+        .limit(num_songs)
         .all()
     )
-    return top_songs
+    song_ids = [song.song for song in top_songs]
+    in_saveds = []
+    for i in range(-(-num_songs // 50)):
+        in_saveds.extend(
+            spotify.current_user_saved_tracks_contains(song_ids[50 * i : 50 * (i + 1)])
+        )
+    return top_songs, in_saveds
+
+
+def add_saved(token_info, song_id):
+    spotify = gen_spotify(token_info)
+    spotify.current_user_saved_tracks_add([song_id])

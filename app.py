@@ -46,7 +46,7 @@ def index():
         f'<h2>Hi {spotify.me()["display_name"]}, '
         f'<small><a href="/sign_out">[sign out]<a/></small></h2>'
         f'<a href="/setup">Create/Update Spotifylter Account</a>'
-        f'<br><a href="/top">My Top Songs</a>'
+        f'<br><a href="/top/10">My Top Songs</a>'
         f'<br><a href="/filtered">Filtered Out Songs</a>'
         f'<br><a href="/remove">Delete Account</a>'
         f"{hosted_by}"
@@ -88,7 +88,7 @@ def filtered():
     else:
         for song in songs:
             ret += template.format(track_id=song.song)
-            ret += f'<p>Song Score: {song.song_count * (song.song_avg/song.song_duration) : .2f} | <a href="{url_for("remove_song", song_id = song.song)}">Delete Song</a></p>'
+            ret += f'<p>Song Score: {song.song_count * (song.song_avg/song.song_duration) : .2f} | <a href="{url_for("remove_song", song_id = song.song)}">Delete Song</a> | <a href="{url_for("readd_song", song_id = song.song)}">Re-Add Song</a></p>'
 
     return f"{ret}" f'<br><a href="/">[HOME]<a/>' f"{hosted_by}"
 
@@ -102,23 +102,45 @@ def remove_song(song_id):
     return redirect("/filtered")
 
 
-@app.route("/top")
-def top_songs():
+@app.route("/readd_song/<string:song_id>")
+def readd_song(song_id):
+    token_info = session.get("token_info")
+    if not token_info:
+        return redirect("/")
+    common.readd_song(Scoped_Session, token_info, song_id)
+    return redirect("/filtered")
+
+
+@app.route("/top/<int:num_songs>")
+def top_songs(num_songs):
     token_info = session.get("token_info")
     if not token_info:
         return redirect("/")
 
-    top_songs = common.get_top_songs(Scoped_Session, token_info)
+    top_songs, in_saveds = common.get_top_songs(Scoped_Session, token_info, num_songs)
 
     ret = ""
     if not top_songs:
         ret = "<h>Top Songs Unavailable</h2>"
     else:
-        for song in top_songs:
+        for i, song in enumerate(top_songs):
             ret += template.format(track_id=song.song)
-            ret += f"<p>Song Score: {song.song_count * (song.song_avg/song.song_duration) : .2f}</p>"
+            ret += f"<p>Song Score: {song.song_count * (song.song_avg/song.song_duration) : .2f}"
+            if not in_saveds[i]:
+                ret += f' | <a href="{url_for("add_saved", song_id = song.song, red = num_songs)}">Add Song to Library</a>'
+            ret += "</p>"
 
     return f"{ret}" f'<br><a href="/">[HOME]<a/>' f"{hosted_by}"
+
+
+@app.route("/add_saved/<string:song_id>")
+@app.route("/add_saved/<string:song_id>/<int:red>")
+def add_saved(song_id, red=10):
+    token_info = session.get("token_info")
+    if not token_info:
+        return redirect("/")
+    common.add_saved(token_info, song_id)
+    return redirect(f"/top/{red}")
 
 
 @app.route("/remove")
